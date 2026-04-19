@@ -1,2 +1,2 @@
 // @promptscore/db — Supabase migrations, generated types
-export {};
+export type { Database } from "./database.types";
