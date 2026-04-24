@@ -12,5 +12,9 @@
   "devDependencies": {
     "typescript": "^5",
     "vitest": "^4"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.7.1",
+    "robots-parser": "^3.0.1"
   }
 }

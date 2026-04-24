@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { scanRequestSchema } from "@/lib/scan-schema";
 import { supabaseAdmin } from "@/lib/supabase";
+import { scanCreateLimiter, getClientIP, checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 10 scan creations per IP per hour
+    const ip = getClientIP(request);
+    const rateLimited = await checkRateLimit(scanCreateLimiter, ip);
+    if (rateLimited) return rateLimited;
+
     const body = await request.json();
 
     // Validate request body
@@ -40,7 +46,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error("Supabase insert error:", error);
+      console.error("Supabase insert error:", JSON.stringify(error));
       return NextResponse.json(
         { error: "Failed to create scan" },
         { status: 500 }
