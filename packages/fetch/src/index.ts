@@ -28,3 +28,12 @@ export type { SemanticAnalysis, HeadingEntry, LandmarkCounts, ImageAltCoverage }
 
 export { buildFetchContext } from "./fetch-context";
 export type { FetchContext, PageAnalysis } from "./fetch-context";
+
+export { fetchPageSpeed } from "./pagespeed";
+export type { PageSpeedResult } from "./pagespeed";
+
+export { lookupWikidata } from "./wikidata";
+export type { WikidataResult } from "./wikidata";
+
+export { runBotProbes, AI_BOT_USER_AGENTS } from "./bot-probes";
+export type { BotProbeResult, BotName } from "./bot-probes";

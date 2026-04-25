@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import { scanRequestSchema } from "@/lib/scan-schema";
 import { supabaseAdmin } from "@/lib/supabase";
 import { scanCreateLimiter, getClientIP, checkRateLimit } from "@/lib/rate-limit";
+import { runScanWorker } from "@/lib/scan-worker";
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,6 +53,9 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Fire-and-forget background worker — intentionally not awaited
+    void runScanWorker(data.id, canonical.href);
 
     return NextResponse.json(
       { scan_id: data.id, status: data.status },

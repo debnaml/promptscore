@@ -9,6 +9,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@promptscore/fetch": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "^5",
     "vitest": "^4"
