@@ -39,6 +39,19 @@ const CATEGORY_LABELS: Record<string, string> = {
   authority_trust: "Authority & Trust",
 };
 
+const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  crawler_access:
+    "Can AI bots actually reach and read your site? This checks robots.txt rules for ChatGPT, Perplexity, and Claude crawlers, your sitemap, HTTPS setup, whether content loads without JavaScript, and mobile page speed.",
+  structured_data:
+    "Does your site speak the machine-readable language AI uses to understand businesses? This covers schema.org markup (Organisation, FAQ, Breadcrumbs), Open Graph tags, and canonical URLs — the signals AI uses to describe you accurately.",
+  content_clarity:
+    "Would an AI confidently summarise what your business does from your website alone? This evaluates your homepage copy, heading structure, FAQ content, and whether your pages directly answer the questions people ask AI assistants.",
+  ai_specific:
+    "Have you taken the extra steps to signal AI-readiness? This checks for an llms.txt file (a machine-readable site summary), explicit training-bot policies, WAF firewall rules that might block AI crawlers, and an AI usage policy page.",
+  authority_trust:
+    "Does AI treat your site as a credible, authoritative source? This looks at your About page depth, contact information completeness, named author bylines, Wikidata presence, and whether you cite external sources — the signals that build AI trust.",
+};
+
 const CATEGORY_ORDER = [
   "crawler_access",
   "structured_data",
@@ -78,9 +91,6 @@ function getBandLabel(score: number): string {
 }
 
 function ScoreGauge({ score }: { score: number }) {
-  const radius = 60;
-  const circumference = Math.PI * radius; // half-circle
-  const progress = (score / 100) * circumference;
   const colorClass = scoreColor(score);
 
   return (
@@ -120,6 +130,7 @@ function ScoreGauge({ score }: { score: number }) {
 function CategoryBar({ category, score }: { category: string; score: number }) {
   const label = CATEGORY_LABELS[category] ?? category;
   const weight = CATEGORY_WEIGHTS[category] ?? 0;
+  const description = CATEGORY_DESCRIPTIONS[category];
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-sm">
@@ -132,7 +143,12 @@ function CategoryBar({ category, score }: { category: string; score: number }) {
           style={{ width: `${score}%` }}
         />
       </div>
-      <div className="text-xs text-muted-foreground">{weight}% of overall score</div>
+      <div className="flex justify-between items-start gap-4">
+        {description && (
+          <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+        )}
+        <span className="text-xs text-muted-foreground shrink-0">{weight}% of score</span>
+      </div>
     </div>
   );
 }
@@ -176,9 +192,11 @@ function ResultState({ scan }: { scan: ScanRow }) {
   const score = scan.overall_score ?? 0;
   const categoryScores = scan.category_scores ?? {};
   const summary = scan.summary ?? {};
-  const positives = summary.positives ?? [];
-  const negatives = summary.negatives ?? [];
-  const actions = summary.priority_actions ?? [];
+  const positives = (summary.positives ?? []) as Array<{ key: string; title?: string; explanation?: string }>;
+  const negatives = (summary.negatives ?? []) as Array<{ key: string; title?: string; explanation?: string }>;
+  const actions = (summary.priority_actions ?? []) as Array<{ key: string; title?: string; howToFix?: string; effort?: string }>;
+  const band = (summary as { band?: { label?: string; description?: string } }).band;
+  const headline = (summary as { headline?: string }).headline;
 
   return (
     <div className="max-w-2xl mx-auto space-y-10 py-12 px-4">
@@ -193,10 +211,18 @@ function ResultState({ scan }: { scan: ScanRow }) {
         <ScoreGauge score={score} />
       </div>
 
+      {/* Band description */}
+      {(band || headline) && (
+        <div className="rounded-lg bg-muted/50 border border-border p-4 text-sm space-y-1">
+          {band?.label && <p className="font-semibold">{band.label}</p>}
+          <p className="text-muted-foreground">{headline ?? band?.description}</p>
+        </div>
+      )}
+
       {/* Category breakdown */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         <h2 className="font-semibold text-base">Category Breakdown</h2>
-        <div className="space-y-4">
+        <div className="space-y-6">
           {CATEGORY_ORDER.map((cat) => {
             const s = categoryScores[cat];
             if (s == null) return null;
@@ -208,12 +234,15 @@ function ResultState({ scan }: { scan: ScanRow }) {
       {/* Positives */}
       {positives.length > 0 && (
         <div className="space-y-3">
-          <h2 className="font-semibold text-base text-green-700">What&apos;s working well</h2>
-          <ul className="space-y-2">
+          <h2 className="font-semibold text-base">What&apos;s working well</h2>
+          <ul className="space-y-3">
             {positives.slice(0, 3).map((p) => (
-              <li key={p.key} className="flex items-start gap-2 text-sm">
-                <span className="text-green-600 mt-0.5">✓</span>
-                <span>{p.title ?? p.key}</span>
+              <li key={p.key} className="flex items-start gap-3 text-sm">
+                <span className="text-green-600 mt-0.5 text-base leading-none">✓</span>
+                <div>
+                  <p className="font-medium">{p.title ?? p.key}</p>
+                  {p.explanation && <p className="text-muted-foreground text-xs mt-0.5">{p.explanation}</p>}
+                </div>
               </li>
             ))}
           </ul>
@@ -223,12 +252,15 @@ function ResultState({ scan }: { scan: ScanRow }) {
       {/* Negatives */}
       {negatives.length > 0 && (
         <div className="space-y-3">
-          <h2 className="font-semibold text-base text-red-700">Key gaps</h2>
-          <ul className="space-y-2">
+          <h2 className="font-semibold text-base">Key gaps</h2>
+          <ul className="space-y-3">
             {negatives.slice(0, 3).map((n) => (
-              <li key={n.key} className="flex items-start gap-2 text-sm">
-                <span className="text-red-500 mt-0.5">✗</span>
-                <span>{n.title ?? n.key}</span>
+              <li key={n.key} className="flex items-start gap-3 text-sm">
+                <span className="text-red-500 mt-0.5 text-base leading-none">✗</span>
+                <div>
+                  <p className="font-medium">{n.title ?? n.key}</p>
+                  {n.explanation && <p className="text-muted-foreground text-xs mt-0.5">{n.explanation}</p>}
+                </div>
               </li>
             ))}
           </ul>
@@ -238,19 +270,23 @@ function ResultState({ scan }: { scan: ScanRow }) {
       {/* Priority actions */}
       {actions.length > 0 && (
         <div className="space-y-4">
-          <h2 className="font-semibold text-base">Priority Actions</h2>
+          <h2 className="font-semibold text-base">Top Priority Actions</h2>
           <div className="space-y-4">
             {actions.map((action, i) => (
               <div key={action.key} className="rounded-lg border border-border p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-muted-foreground bg-muted rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className="text-xs font-bold text-muted-foreground bg-muted rounded-full w-5 h-5 flex items-center justify-center shrink-0">
                       {i + 1}
                     </span>
                     <span className="font-medium text-sm">{action.title ?? action.key}</span>
                   </div>
                   {action.effort && (
-                    <span className="text-xs text-muted-foreground capitalize shrink-0">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${
+                      action.effort === "small" ? "bg-green-100 text-green-700" :
+                      action.effort === "medium" ? "bg-yellow-100 text-yellow-700" :
+                      "bg-red-100 text-red-700"
+                    }`}>
                       {action.effort} effort
                     </span>
                   )}
@@ -264,11 +300,26 @@ function ResultState({ scan }: { scan: ScanRow }) {
         </div>
       )}
 
-      {/* CTA */}
-      <div className="text-center pt-4">
+      {/* Full report CTA */}
+      <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-6 text-center space-y-3">
+        <h2 className="font-bold text-lg">Get your full report</h2>
+        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+          Enter your email to receive a detailed PDF report with every check explained, evidence snippets, and a step-by-step fix guide.
+        </p>
+        <Link
+          href={`/scan/${scan.id}/unlock`}
+          className="inline-flex items-center justify-center h-11 px-6 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity"
+        >
+          Get the full PDF report →
+        </Link>
+        <p className="text-xs text-muted-foreground">Free · No spam · Unsubscribe anytime</p>
+      </div>
+
+      {/* Scan another */}
+      <div className="text-center">
         <Link
           href="/"
-          className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+          className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4"
         >
           Scan another site
         </Link>

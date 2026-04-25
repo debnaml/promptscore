@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
+import { waitUntil } from "@vercel/functions";
 import { scanRequestSchema } from "@/lib/scan-schema";
 import { supabaseAdmin } from "@/lib/supabase";
 import { scanCreateLimiter, getClientIP, checkRateLimit } from "@/lib/rate-limit";
 import { runScanWorker } from "@/lib/scan-worker";
+
+// Allow up to 5 minutes for the scan worker to complete
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,8 +58,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fire-and-forget background worker — intentionally not awaited
-    void runScanWorker(data.id, canonical.href);
+    // Keep the serverless function alive until the worker finishes
+    waitUntil(runScanWorker(data.id, canonical.href));
 
     return NextResponse.json(
       { scan_id: data.id, status: data.status },

@@ -46,8 +46,8 @@ export function ScanForm() {
         return;
       }
 
-      const { id } = (await res.json()) as { id: string };
-      router.push(`/scan/${id}`);
+      const { scan_id } = (await res.json()) as { scan_id: string };
+      router.push(`/scan/${scan_id}`);
     } catch {
       setError("Network error. Please check your connection and try again.");
     } finally {
