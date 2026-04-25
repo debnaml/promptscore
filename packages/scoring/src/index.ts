@@ -7,3 +7,8 @@ export { aggregate, CATEGORY_WEIGHTS } from "./aggregate";
 export type { ScanAggregate, PriorityAction } from "./aggregate";
 export { ALL_CHECKS } from "./registry";
 export { EFFORT_MAP } from "./effort-map";
+export { SCORING_VERSION } from "./version";
+export { CHECK_COPY } from "./check-copy";
+export type { CheckCopy } from "./check-copy";
+export { buildNarrative, getScoreBand, SCORE_BANDS } from "./narrative";
+export type { Narrative, NarrativePositive, NarrativeNegative, NarrativePriorityAction, BandInfo, ScoreBand } from "./narrative";

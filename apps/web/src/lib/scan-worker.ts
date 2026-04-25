@@ -12,7 +12,7 @@
  *   7. On any unhandled error → mark 'failed'
  */
 import { buildFetchContext } from "@promptscore/fetch";
-import { runChecks, aggregate, ALL_CHECKS } from "@promptscore/scoring";
+import { runChecks, aggregate, ALL_CHECKS, buildNarrative } from "@promptscore/scoring";
 import { supabaseAdmin } from "./supabase";
 
 export async function runScanWorker(scanId: string, url: string): Promise<void> {
@@ -29,8 +29,9 @@ export async function runScanWorker(scanId: string, url: string): Promise<void> 
     // 3. Run deterministic checks
     const runnerResults = await runChecks(ctx, ALL_CHECKS);
 
-    // 4. Aggregate
+    // 4. Aggregate + narrative
     const agg = aggregate(runnerResults);
+    const narrative = buildNarrative(agg);
 
     // 5. Persist individual check rows
     const checkRows = runnerResults.map((r) => ({
@@ -56,12 +57,17 @@ export async function runScanWorker(scanId: string, url: string): Promise<void> 
     const { error: updateError } = await supabaseAdmin
       .from("scans")
       .update({
-        status: "complete",
+        status: "done",
         overall_score: agg.overall_score,
         category_scores: agg.category_scores,
-        positives: agg.positives.map((r) => r.key),
-        negatives: agg.negatives.map((r) => r.key),
-        priority_actions: agg.priority_actions,
+        summary: {
+          positives: narrative.topPositives,
+          negatives: narrative.topNegatives,
+          priority_actions: narrative.priorityActions,
+          not_scored_count: narrative.notScoredCount,
+          band: narrative.band,
+          headline: narrative.headlineSummary,
+        },
         completed_at: new Date().toISOString(),
       })
       .eq("id", scanId);

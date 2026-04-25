@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@promptscore/ai": "workspace:*",
     "@promptscore/fetch": "workspace:*"
   },
   "devDependencies": {

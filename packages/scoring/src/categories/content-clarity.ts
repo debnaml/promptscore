@@ -1,6 +1,12 @@
 import type { Check } from "../types";
 import { scored, notScored } from "../types";
 import type { HeadingEntry } from "@promptscore/fetch";
+import {
+  scoreHomepageClarity,
+  normaliseHomepageClarity,
+  scoreQueryCoverage,
+  normaliseQueryCoverage,
+} from "@promptscore/ai";
 
 export const contentClarityChecks: Check[] = [
   {
@@ -103,9 +109,22 @@ export const contentClarityChecks: Check[] = [
     category: "content_clarity",
     type: "A",
     weight: 6,
-    run(_ctx) {
-      // AI check — deferred to Sprint 4
-      return notScored("AI-graded check deferred to Sprint 4");
+    async run(ctx) {
+      const html = ctx.homepage.static.ok ? (ctx.homepage.static as { html: string }).html : "";
+      const title = ctx.homepage.meta.og?.title ?? extractTitle(html);
+      const description = ctx.homepage.meta.description ?? "";
+      const h1 = ctx.homepage.semantic.headings.find((h) => h.level === 1)?.text ?? "";
+      const mainContent = extractMainText(html, 500);
+
+      const result = await scoreHomepageClarity({ title, description, h1, mainContent });
+      if (!result.ok) return notScored(result.reason, { skipped: true });
+
+      const score = normaliseHomepageClarity(result.data);
+      return scored(score, {
+        rubric: result.data,
+        tokens_used: result.tokensUsed,
+        prompt_version: result.promptVersion,
+      });
     },
   },
 
@@ -114,8 +133,29 @@ export const contentClarityChecks: Check[] = [
     category: "content_clarity",
     type: "A",
     weight: 6,
-    run(_ctx) {
-      return notScored("AI-graded check deferred to Sprint 4");
+    async run(ctx) {
+      const detectedCategory =
+        (ctx as unknown as { detectedCategory?: string }).detectedCategory ?? "other";
+      const location =
+        (ctx as unknown as { detectedLocation?: string }).detectedLocation ?? null;
+
+      // Assemble content from homepage + inner pages (up to 4000 words)
+      const pages = [ctx.homepage, ...ctx.innerPages.slice(0, 3)];
+      const content = pages
+        .map((p) => (p.static.ok ? (p.static as { html: string }).html : ""))
+        .map((h) => extractMainText(h, 1200))
+        .join("\n\n")
+        .slice(0, 4000 * 6); // rough char cap
+
+      const result = await scoreQueryCoverage({ category: detectedCategory, location, content });
+      if (!result.ok) return notScored(result.reason, { skipped: true });
+
+      const score = normaliseQueryCoverage(result.data);
+      return scored(score, {
+        queries: result.data.queries,
+        tokens_used: result.tokensUsed,
+        prompt_version: result.promptVersion,
+      });
     },
   },
 
@@ -166,4 +206,22 @@ function hasFaqPattern(html: string, headings: HeadingEntry[]): boolean {
   if (headings.some((h) => /^(FAQ|Frequently Asked|Questions)/i.test(h.text))) return true;
   const questionHeadings = headings.filter((h) => (h.level === 3 || h.level === 4) && h.text.endsWith("?"));
   return questionHeadings.length >= 2;
+}
+
+function extractTitle(html: string): string {
+  return /<title[^>]*>([^<]*)<\/title>/i.exec(html)?.[1]?.trim() ?? "";
+}
+
+/** Extract visible text from main content, strip tags, cap at wordLimit words */
+function extractMainText(html: string, wordLimit: number): string {
+  if (!html) return "";
+  // Remove script/style/head
+  const clean = html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<head[\s\S]*?<\/head>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return clean.split(/\s+/).slice(0, wordLimit).join(" ");
 }

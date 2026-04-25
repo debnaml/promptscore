@@ -13,11 +13,8 @@ export async function runChecks(
   ctx: FetchContext,
   checks: Check[]
 ): Promise<RunnerResult[]> {
-  // Deterministic and composite checks only — AI checks are sprint 4
-  const eligible = checks.filter((c) => c.type !== "A");
-
   const results = await Promise.all(
-    eligible.map(async (check) => {
+    checks.map(async (check) => {
       let result: CheckResult;
       try {
         result = await check.run(ctx);

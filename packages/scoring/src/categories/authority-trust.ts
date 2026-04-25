@@ -1,5 +1,6 @@
 import type { Check } from "../types";
 import { scored, notScored } from "../types";
+import { scoreCitationPractice } from "@promptscore/ai";
 
 const ABOUT_PATHS = ["/about", "/about-us", "/company", "/who-we-are"];
 const CONTACT_PATHS = ["/contact", "/contact-us", "/get-in-touch"];
@@ -99,8 +100,25 @@ export const authorityTrustChecks: Check[] = [
     category: "authority_trust",
     type: "A",
     weight: 2,
-    run(_ctx) {
-      return { score: -1, not_scored: true, evidence: null, notes: "AI-graded check deferred to Sprint 4" };
+    async run(ctx) {
+      const pages = ctx.innerPages.length > 0 ? ctx.innerPages.slice(0, 3) : [ctx.homepage];
+      const pageInputs = pages
+        .filter((p) => p.static.ok)
+        .map((p) => ({
+          url: p.url,
+          content: (p.static as { html: string }).html,
+        }));
+
+      if (pageInputs.length === 0) return notScored("No page content available");
+
+      const result = await scoreCitationPractice({ pages: pageInputs });
+      if (!result.ok) return notScored(result.reason, { skipped: true });
+
+      return scored(result.data.overall, {
+        pages: result.data.pages,
+        tokens_used: result.tokensUsed,
+        prompt_version: result.promptVersion,
+      });
     },
   },
 
