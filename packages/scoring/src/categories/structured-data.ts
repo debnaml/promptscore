@@ -153,9 +153,12 @@ export const structuredDataChecks: Check[] = [
         return c !== null && c.startsWith(origin);
       });
       const allPages = [{ meta: { canonical: homeCanonical } }, ...ctx.innerPages];
-      const ratio = (homepageOk ? 1 : 0 + innerOk.length) / allPages.length;
-      const score = ratio === 1 ? 1 : 0;
-      return scored(score, { homepage_canonical: homeCanonical, inner_pages_with_canonical: innerOk.length, total: allPages.length });
+      // Fix: operator precedence — homepageOk contributes 1, not folded into ternary
+      const pagesWithCanonical = (homepageOk ? 1 : 0) + innerOk.length;
+      const ratio = pagesWithCanonical / allPages.length;
+      // Proportional: full marks >=80% coverage, partial for >=50%, 0 below that
+      const score = ratio >= 0.8 ? 1 : ratio >= 0.5 ? 0.5 : 0;
+      return scored(score, { homepage_canonical: homeCanonical, inner_pages_with_canonical: innerOk.length, total: allPages.length, ratio: Math.round(ratio * 100) });
     },
   },
 ];
