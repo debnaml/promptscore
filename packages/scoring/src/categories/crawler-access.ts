@@ -86,14 +86,28 @@ export const crawlerAccessChecks: Check[] = [
       // max-age=0 is used to revoke HSTS — treat as absent
       const maxAgeMatch = hstsHeader ? /max-age=(\d+)/i.exec(hstsHeader) : null;
       const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1], 10) : 0;
-      const hsts = maxAge > 0;
-      const score = hsts ? 1 : 0.5;
+      // Tiered: no HSTS=0.5, <1 week=0.6, <6 months=0.75, >=6 months=1.0
+      // Recommended minimum is 6 months (15,768,000s); ideal is 1 year (31,536,000s)
+      let score: number;
+      let notes: string | undefined;
+      if (maxAge <= 0) {
+        score = 0.5;
+        notes = "HTTPS present but HSTS not enabled";
+      } else if (maxAge < 604_800) {          // < 1 week
+        score = 0.6;
+        notes = `HSTS max-age too short (${maxAge}s) — minimum recommended is 6 months`;
+      } else if (maxAge < 15_768_000) {       // < 6 months
+        score = 0.75;
+        notes = `HSTS max-age ${Math.round(maxAge / 86400)} days — recommend at least 6 months`;
+      } else {
+        score = 1;
+      }
       return scored(score, {
         https: true,
-        hsts,
+        hsts: maxAge > 0,
         hsts_max_age: maxAge,
         hsts_header: hstsHeader,
-      }, hsts ? undefined : "HTTPS present but HSTS not enabled");
+      }, notes);
     },
   },
 
