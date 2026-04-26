@@ -46,6 +46,27 @@ function buildUserPrompt(pages: Array<{ url: string; content: string }>): string
   return `Evaluate citation practice for these ${pages.length} page(s):\n\n${sections}`;
 }
 
+const TOOL_INPUT_SCHEMA = {
+  type: "object",
+  required: ["pages", "overall"],
+  properties: {
+    pages: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["url", "cites_sources", "outbound_authority_links", "notes"],
+        properties: {
+          url: { type: "string" },
+          cites_sources: { type: "number", enum: [0, 0.5, 1] },
+          outbound_authority_links: { type: "number", enum: [0, 0.5, 1] },
+          notes: { type: "string", maxLength: 200 },
+        },
+      },
+    },
+    overall: { type: "number", enum: [0, 0.5, 1] },
+  },
+};
+
 export async function scoreCitationPractice(input: {
   pages: Array<{ url: string; content: string }>;
 }): Promise<ClaudeResult<CitationPracticeResult>> {
@@ -54,6 +75,7 @@ export async function scoreCitationPractice(input: {
     systemPrompt: SYSTEM_PROMPT,
     userPrompt: buildUserPrompt(input.pages),
     schema: citationPracticeSchema,
+    toolInputSchema: TOOL_INPUT_SCHEMA,
     promptVersion: CITATION_PRACTICE_VERSION,
     checkKey: "citation_practice",
   });

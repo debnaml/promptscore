@@ -42,6 +42,27 @@ ${content}
 Generate 5 specific queries a user would ask an AI assistant about a ${category} business${locationPart}, then score how well the site content answers each.`;
 }
 
+const TOOL_INPUT_SCHEMA = {
+  type: "object",
+  required: ["queries"],
+  properties: {
+    queries: {
+      type: "array",
+      minItems: 5,
+      maxItems: 5,
+      items: {
+        type: "object",
+        required: ["query", "score", "evidence"],
+        properties: {
+          query: { type: "string" },
+          score: { type: "number", enum: [0, 0.5, 1] },
+          evidence: { type: "string", maxLength: 300 },
+        },
+      },
+    },
+  },
+};
+
 export async function scoreQueryCoverage(input: {
   category: string;
   location: string | null;
@@ -52,6 +73,7 @@ export async function scoreQueryCoverage(input: {
     systemPrompt: SYSTEM_PROMPT,
     userPrompt: buildUserPrompt(input.category, input.location, input.content),
     schema: queryCoverageSchema,
+    toolInputSchema: TOOL_INPUT_SCHEMA,
     promptVersion: QUERY_COVERAGE_VERSION,
     checkKey: "query_coverage_rubric",
   });

@@ -8,6 +8,12 @@ export interface ClaudeCallOptions<T extends z.ZodTypeAny> {
   userPrompt: string;
   /** Zod schema for the expected JSON output */
   schema: T;
+  /**
+   * JSON Schema object describing the tool input. Claude uses this to structure
+   * its output — must match the Zod schema. If omitted, falls back to open schema
+   * (not recommended: Claude will invent its own structure).
+   */
+  toolInputSchema?: Record<string, unknown>;
   /** Identifies the prompt version — part of the cache key */
   promptVersion: string;
   /** Check key for logging */
@@ -81,12 +87,12 @@ export async function callClaude<T extends z.ZodTypeAny>(
         {
           name: toolName,
           description: toolDescription,
-          input_schema: {
-            type: "object" as const,
+          input_schema: (options.toolInputSchema ?? {
+            type: "object",
             description: "The structured result",
             properties: {},
             additionalProperties: true,
-          },
+          }) as Anthropic.Tool["input_schema"],
         },
       ],
       tool_choice: { type: "tool", name: toolName },

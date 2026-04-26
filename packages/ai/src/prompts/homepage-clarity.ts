@@ -74,6 +74,38 @@ First 500 words of main content:
 ${mainContent}`;
 }
 
+const TOOL_INPUT_SCHEMA = {
+  type: "object",
+  required: ["what_business_does", "who_for", "outcome", "overall_notes"],
+  properties: {
+    what_business_does: {
+      type: "object",
+      required: ["score", "evidence"],
+      properties: {
+        score: { type: "integer", enum: [0, 1, 2] },
+        evidence: { type: "string", maxLength: 300 },
+      },
+    },
+    who_for: {
+      type: "object",
+      required: ["score", "evidence"],
+      properties: {
+        score: { type: "integer", enum: [0, 1, 2] },
+        evidence: { type: "string", maxLength: 300 },
+      },
+    },
+    outcome: {
+      type: "object",
+      required: ["score", "evidence"],
+      properties: {
+        score: { type: "integer", enum: [0, 1, 2] },
+        evidence: { type: "string", maxLength: 300 },
+      },
+    },
+    overall_notes: { type: "string", maxLength: 200 },
+  },
+};
+
 export async function scoreHomepageClarity(input: {
   title: string;
   description: string;
@@ -85,6 +117,7 @@ export async function scoreHomepageClarity(input: {
     systemPrompt: SYSTEM_PROMPT,
     userPrompt: buildUserPrompt(input.title, input.description, input.h1, input.mainContent),
     schema: homepageClaritySchema,
+    toolInputSchema: TOOL_INPUT_SCHEMA,
     promptVersion: HOMEPAGE_CLARITY_VERSION,
     checkKey: "homepage_clarity_rubric",
   });
