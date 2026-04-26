@@ -82,13 +82,18 @@ export const crawlerAccessChecks: Check[] = [
     run(ctx) {
       const isHttps = ctx.input.canonical.startsWith("https://");
       if (!isHttps) return scored(0, { https: false, hsts: false }, "Not HTTPS");
-      const hsts = ctx.homepage.meta.strictTransportSecurity !== null;
+      const hstsHeader = ctx.homepage.meta.strictTransportSecurity;
+      // max-age=0 is used to revoke HSTS — treat as absent
+      const maxAgeMatch = hstsHeader ? /max-age=(\d+)/i.exec(hstsHeader) : null;
+      const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1], 10) : 0;
+      const hsts = maxAge > 0;
       const score = hsts ? 1 : 0.5;
       return scored(score, {
         https: true,
         hsts,
-        hsts_value: ctx.homepage.meta.strictTransportSecurity,
-      });
+        hsts_max_age: maxAge,
+        hsts_header: hstsHeader,
+      }, hsts ? undefined : "HTTPS present but HSTS not enabled");
     },
   },
 
