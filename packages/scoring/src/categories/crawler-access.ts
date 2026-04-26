@@ -18,14 +18,9 @@ export const crawlerAccessChecks: Check[] = [
     type: "D",
     weight: 2,
     run(ctx) {
-      const { present, status, raw } = ctx.robots as unknown as {
-        present: boolean;
-        status: number | null;
-        raw: string | null;
-      };
-      if (!present || !raw) return scored(0, { present, status }, "robots.txt missing");
-      // Basic validity: parseable (robots module already parsed it — if we have it, it parsed)
-      return scored(1, { present, status }, "robots.txt present and valid");
+      const raw = ctx.robots.raw;
+      if (!raw) return scored(0, { present: false }, "robots.txt missing");
+      return scored(1, { present: true }, "robots.txt present and valid");
     },
   },
 
