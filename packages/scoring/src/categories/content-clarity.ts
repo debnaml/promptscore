@@ -59,14 +59,18 @@ export const contentClarityChecks: Check[] = [
       const pages = [ctx.homepage, ...ctx.innerPages];
       let total = 0;
       let withAlt = 0;
+      let decorative = 0;
       for (const page of pages) {
         total += page.semantic.images.total;
         withAlt += page.semantic.images.withAlt;
+        decorative += page.semantic.images.decorativeEmptyAlt;
       }
-      if (total === 0) return scored(1, { total: 0, note: "No images found — full credit" });
-      const ratio = withAlt / total;
+      // alt="" is the CORRECT way to mark decorative images — exclude from denominator
+      const contentImages = total - decorative;
+      if (contentImages === 0) return scored(1, { total, decorative, note: "No content images found — full credit" });
+      const ratio = withAlt / contentImages;
       const score = ratio >= 0.9 ? 1 : ratio >= 0.6 ? 0.5 : 0;
-      return scored(score, { total, with_alt: withAlt, ratio: Math.round(ratio * 100) / 100 });
+      return scored(score, { total, with_alt: withAlt, decorative_empty_alt: decorative, content_images: contentImages, ratio: Math.round(ratio * 100) / 100 });
     },
   },
 
@@ -82,14 +86,9 @@ export const contentClarityChecks: Check[] = [
 
       for (const page of pages) {
         const html = page.static.ok ? (page.static as { html: string }).html : "";
-        const schemaDatePub = page.jsonLd.blocks.some((b) => {
-          const p = b.parsed as Record<string, unknown>;
-          return typeof p.datePublished === "string";
-        });
-        const schemaDateMod = page.jsonLd.blocks.some((b) => {
-          const p = b.parsed as Record<string, unknown>;
-          return typeof p.dateModified === "string";
-        });
+        // Deep-traverse JSON-LD blocks to handle @graph nesting (Yoast, RankMath, etc.)
+        const schemaDatePub = page.jsonLd.blocks.some((b) => hasFieldDeep(b.parsed, "datePublished"));
+        const schemaDateMod = page.jsonLd.blocks.some((b) => hasFieldDeep(b.parsed, "dateModified"));
         const hasTimeEl = /<time[^>]+datetime/i.test(html);
         const hasDate = schemaDatePub || hasTimeEl;
         const hasUpdated = schemaDateMod;
@@ -210,6 +209,23 @@ function hasFaqPattern(html: string, headings: HeadingEntry[]): boolean {
 
 function extractTitle(html: string): string {
   return /<title[^>]*>([^<]*)<\/title>/i.exec(html)?.[1]?.trim() ?? "";
+}
+
+/** Recursively search a parsed JSON-LD value for a top-level field on any node.
+ * Handles @graph arrays and arbitrary nesting. Returns true if any node has the field as a string. */
+function hasFieldDeep(value: unknown, field: string): boolean {
+  if (value === null || value === undefined) return false;
+  if (Array.isArray(value)) {
+    return value.some((v) => hasFieldDeep(v, field));
+  }
+  if (typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  if (typeof record[field] === "string") return true;
+  // Recurse into @graph and other array/object children
+  if (Array.isArray(record["@graph"])) {
+    if (record["@graph"].some((v) => hasFieldDeep(v, field))) return true;
+  }
+  return false;
 }
 
 /** Extract visible text from main content, strip tags, cap at wordLimit words */

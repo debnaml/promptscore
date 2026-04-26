@@ -78,20 +78,25 @@ export function extractSemantic(html: string, siteOrigin?: string): SemanticAnal
     }
   }
 
-  // Count landmark elements (opening tags only)
+  // Count landmark elements (opening tags only). Also includes ARIA roles
+  // for sites that use <div role="..."> instead of HTML5 semantic elements.
   function countTag(tag: string): number {
     const re = new RegExp(`<${tag}[\\s>]`, "gi");
     return (html.match(re) ?? []).length;
   }
+  function countRole(role: string): number {
+    const re = new RegExp(`role=["']${role}["']`, "gi");
+    return (html.match(re) ?? []).length;
+  }
 
   const landmarks: LandmarkCounts = {
-    main: countTag("main"),
+    main: countTag("main") + countRole("main"),
     article: countTag("article"),
     section: countTag("section"),
-    nav: countTag("nav"),
-    header: countTag("header"),
-    footer: countTag("footer"),
-    aside: countTag("aside"),
+    nav: countTag("nav") + countRole("navigation"),
+    header: countTag("header") + countRole("banner"),
+    footer: countTag("footer") + countRole("contentinfo"),
+    aside: countTag("aside") + countRole("complementary"),
   };
 
   // Image alt coverage

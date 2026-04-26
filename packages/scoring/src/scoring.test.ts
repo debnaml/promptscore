@@ -24,7 +24,7 @@ function makeSemanticAnalysis(overrides?: object) {
   return {
     headings: [{ level: 1, text: "Home" }, { level: 2, text: "Features" }],
     landmarks: makeLandmarks(),
-    images: { total: 4, withAlt: 4, withoutAlt: 0 },
+    images: { total: 4, withAlt: 4, decorativeEmptyAlt: 0 },
     internalLinks: 10,
     externalLinks: 3,
     wordCount: 600,
@@ -415,7 +415,7 @@ describe("content_clarity checks", () => {
 
     it("scores 1 when all images have alt text", () => {
       const ctx = makeCtx({
-        homepage: makePage({ semantic: makeSemanticAnalysis({ images: { total: 4, withAlt: 4, withoutAlt: 0 } }) }),
+        homepage: makePage({ semantic: makeSemanticAnalysis({ images: { total: 4, withAlt: 4, decorativeEmptyAlt: 0 } }) }),
       });
       const r = check.run(ctx as FetchContext) as ReturnType<typeof scored>;
       expect(r.score).toBe(1);
@@ -423,7 +423,7 @@ describe("content_clarity checks", () => {
 
     it("scores 1 when no images (vacuously true)", () => {
       const ctx = makeCtx({
-        homepage: makePage({ semantic: makeSemanticAnalysis({ images: { total: 0, withAlt: 0, withoutAlt: 0 } }) }),
+        homepage: makePage({ semantic: makeSemanticAnalysis({ images: { total: 0, withAlt: 0, decorativeEmptyAlt: 0 } }) }),
       });
       const r = check.run(ctx as FetchContext) as ReturnType<typeof scored>;
       expect(r.score).toBe(1);
@@ -431,7 +431,7 @@ describe("content_clarity checks", () => {
 
     it("scores 0 when almost no alt text", () => {
       const ctx = makeCtx({
-        homepage: makePage({ semantic: makeSemanticAnalysis({ images: { total: 10, withAlt: 1, withoutAlt: 9 } }) }),
+        homepage: makePage({ semantic: makeSemanticAnalysis({ images: { total: 10, withAlt: 1, decorativeEmptyAlt: 0 } }) }),
       });
       const r = check.run(ctx as FetchContext) as ReturnType<typeof scored>;
       expect(r.score).toBe(0);
