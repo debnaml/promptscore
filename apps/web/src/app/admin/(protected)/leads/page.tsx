@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabase";
-import { updateLeadStatusAction } from "./actions";
+import { StatusSelect } from "./status-select";
 
 export const dynamic = "force-dynamic";
 
@@ -200,19 +200,7 @@ export default async function LeadsPage({
                   )}
                 </td>
                 <td className="px-3 py-2">
-                  <form action={updateLeadStatusAction}>
-                    <input type="hidden" name="id" value={r.id} />
-                    <select
-                      name="status"
-                      defaultValue={r.status}
-                      onChange={(e) => e.currentTarget.form?.requestSubmit()}
-                      className="rounded-md border border-slate-300 px-2 py-1 text-xs bg-white"
-                    >
-                      {STATUSES.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </form>
+                  <StatusSelect id={r.id} status={r.status} />
                 </td>
               </tr>
             ))}
