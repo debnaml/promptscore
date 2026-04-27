@@ -77,6 +77,15 @@ function getBandLabel(score: number): string {
   return "High Risk";
 }
 
+/** Hide raw error blobs (JSON, stack traces) in PDF; keep short human-readable notes. */
+function isUserFriendlyNote(note: string): boolean {
+  if (note.length > 200) return false;
+  if (note.includes("{") || note.includes("[{")) return false;
+  if (note.includes("Schema validation")) return false;
+  if (note.includes("API error")) return false;
+  return true;
+}
+
 const s = StyleSheet.create({
   page: { fontFamily: "Helvetica", fontSize: 10, color: COLORS.primary, padding: 48, paddingBottom: 56 },
   footer: { position: "absolute", bottom: 24, left: 48, right: 48, flexDirection: "row", justifyContent: "space-between", fontSize: 8, color: COLORS.muted, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 6 },
@@ -260,17 +269,22 @@ function CategoryPage({
         return (
           <View key={i} style={[s.card, { marginBottom: 6 }]}>
             <View style={s.row}>
-              <Text style={{ fontSize: 12, color: passed ? COLORS.green : partial ? COLORS.yellow : notScored ? COLORS.muted : COLORS.red }}>
-                {notScored ? "—" : passed ? "✓" : partial ? "!" : "✗"}
-              </Text>
               <Text style={[s.h3, { flex: 1 }]}>{copy?.title ?? chk.check_key}</Text>
               {!notScored && (
                 <Text style={[s.badge, { backgroundColor: passed ? "#dcfce7" : partial ? "#fef9c3" : "#fee2e2", color: passed ? COLORS.green : partial ? COLORS.yellow : COLORS.red }]}>
                   {rawScore}/100
                 </Text>
               )}
+              {notScored && (
+                <Text style={[s.badge, { backgroundColor: "#f1f5f9", color: COLORS.muted }]}>
+                  Not yet scored
+                </Text>
+              )}
             </View>
-            {chk.notes && <Text style={s.muted}>{chk.notes}</Text>}
+            {chk.notes && !notScored && <Text style={s.muted}>{chk.notes}</Text>}
+            {notScored && chk.notes && isUserFriendlyNote(chk.notes) && (
+              <Text style={s.muted}>{chk.notes}</Text>
+            )}
             {!passed && !notScored && copy?.howToFix && (
               <Text style={[s.muted, { marginTop: 4, color: COLORS.primary }]}>
                 Fix: {copy.howToFix}

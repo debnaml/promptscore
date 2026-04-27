@@ -7,7 +7,7 @@ export const QUERY_COVERAGE_VERSION = "v1";
 const queryScoreSchema = z.object({
   query: z.string(),
   score: z.union([z.literal(0), z.literal(0.5), z.literal(1)]),
-  evidence: z.string().max(300),
+  evidence: z.string().max(600),
 });
 
 export const queryCoverageSchema = z.object({
@@ -56,7 +56,7 @@ const TOOL_INPUT_SCHEMA = {
         properties: {
           query: { type: "string" },
           score: { type: "number", enum: [0, 0.5, 1] },
-          evidence: { type: "string", maxLength: 300 },
+          evidence: { type: "string", maxLength: 600 },
         },
       },
     },

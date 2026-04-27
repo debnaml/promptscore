@@ -6,7 +6,7 @@ export const HOMEPAGE_CLARITY_VERSION = "v1";
 
 const criterionSchema = z.object({
   score: z.union([z.literal(0), z.literal(1), z.literal(2)]),
-  evidence: z.string().max(300),
+  evidence: z.string().max(600),
 });
 
 export const homepageClaritySchema = z.object({
@@ -83,7 +83,7 @@ const TOOL_INPUT_SCHEMA = {
       required: ["score", "evidence"],
       properties: {
         score: { type: "integer", enum: [0, 1, 2] },
-        evidence: { type: "string", maxLength: 300 },
+        evidence: { type: "string", maxLength: 600 },
       },
     },
     who_for: {
@@ -91,7 +91,7 @@ const TOOL_INPUT_SCHEMA = {
       required: ["score", "evidence"],
       properties: {
         score: { type: "integer", enum: [0, 1, 2] },
-        evidence: { type: "string", maxLength: 300 },
+        evidence: { type: "string", maxLength: 600 },
       },
     },
     outcome: {
@@ -99,7 +99,7 @@ const TOOL_INPUT_SCHEMA = {
       required: ["score", "evidence"],
       properties: {
         score: { type: "integer", enum: [0, 1, 2] },
-        evidence: { type: "string", maxLength: 300 },
+        evidence: { type: "string", maxLength: 600 },
       },
     },
     overall_notes: { type: "string", maxLength: 200 },

@@ -79,7 +79,7 @@ export async function callClaude<T extends z.ZodTypeAny>(
     const start = Date.now();
     const response = await anthropic.messages.create({
       model,
-      max_tokens: 1024,
+      max_tokens: 2048,
       temperature: 0,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
@@ -165,7 +165,7 @@ export async function callClaude<T extends z.ZodTypeAny>(
         inputHash,
       };
     }
-    return skipped(`Schema validation failed after retry: ${JSON.stringify(reparsed.error.issues)}`);
+    return skipped(`AI grading temporarily unavailable (validation failed after retry)`);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return skipped(`Retry error: ${msg}`);
