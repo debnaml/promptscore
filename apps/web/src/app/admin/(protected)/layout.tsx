@@ -27,6 +27,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <NavLink href="/admin/scans">Scans</NavLink>
           <NavLink href="/admin/cost">Cost</NavLink>
           <NavLink href="/admin/settings">Settings</NavLink>
+          <NavLink href="/admin/diagnostics">Diagnostics</NavLink>
+          <NavLink href="/admin/audit-log">Audit log</NavLink>
         </nav>
         <div className="px-4 py-3 border-t border-slate-800 text-xs text-slate-400">
           <div className="truncate" title={user.email ?? ""}>{user.email}</div>
