@@ -96,6 +96,7 @@ export async function createBatchAction(_prevState: string | null, formData: For
           url: workerUrl,
           body: payload,
           headers: { "Content-Type": "application/json" },
+          timeout: 300,
         });
       } else {
         fetch(workerUrl, {

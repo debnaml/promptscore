@@ -142,6 +142,7 @@ export async function POST(request: NextRequest) {
         body: payload,
         headers: { "Content-Type": "application/json" },
         delay: batch?.delay_seconds ?? 30,
+        timeout: 300,
       });
     } else {
       // Local dev: call directly (no delay)

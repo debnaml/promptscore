@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CreateBatchForm } from "./create-batch-form";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 const STATUS_BADGE: Record<string, string> = {
   pending:  "bg-slate-100 text-slate-600",
