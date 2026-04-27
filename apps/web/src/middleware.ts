@@ -39,6 +39,9 @@ export async function middleware(request: NextRequest) {
 
   // 3. Gate /admin and /api/admin to allow-listed admin emails
   const path = request.nextUrl.pathname;
+  // Worker is called by QStash (no session) — it authenticates via signature verification instead
+  if (path === "/api/admin/benchmarks/worker") return response;
+
   const isAdminRoute =
     (path.startsWith("/admin") && path !== "/admin/login") ||
     path.startsWith("/api/admin");
