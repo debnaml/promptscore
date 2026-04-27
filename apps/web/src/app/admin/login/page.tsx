@@ -7,9 +7,10 @@ import { createClient } from "@/lib/supabase/client";
 function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/admin";
+  const callbackError = searchParams.get("error");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(callbackError ?? null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
