@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function AdminLoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/admin";
   const [email, setEmail] = useState("");
@@ -66,5 +66,13 @@ export default function AdminLoginPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
