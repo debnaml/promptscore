@@ -31,7 +31,7 @@ export default async function CostPage() {
       .from("scans")
       .select("id, created_at, overall_score")
       .gte("created_at", thirtyDaysAgo)
-      .eq("status", "complete"),
+      .eq("status", "done"),
   ]);
 
   const logs = aiLogs ?? [];

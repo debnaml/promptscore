@@ -25,6 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <nav className="flex-1 px-2 py-3 space-y-0.5 text-sm">
           <NavLink href="/admin/leads">Leads</NavLink>
           <NavLink href="/admin/scans">Scans</NavLink>
+          <NavLink href="/admin/benchmarks">Benchmarks</NavLink>
           <NavLink href="/admin/cost">Cost</NavLink>
           <NavLink href="/admin/settings">Settings</NavLink>
           <NavLink href="/admin/diagnostics">Diagnostics</NavLink>
