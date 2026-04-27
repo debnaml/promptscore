@@ -33,27 +33,32 @@ export async function POST(request: NextRequest) {
   }
 
   const { batchId, resultId } = JSON.parse(rawBody) as { batchId: string; resultId: string };
+  console.log(`[worker] received batchId=${batchId} resultId=${resultId}`);
 
   // Mark result + batch as running
-  await supabaseAdmin
+  const { error: markRunningErr } = await supabaseAdmin
     .from("bench_results")
     .update({ status: "running" })
     .eq("id", resultId);
+  console.log(`[worker] mark result running: err=${markRunningErr?.message ?? "none"}`);
 
-  await supabaseAdmin
+  const { error: markBatchErr } = await supabaseAdmin
     .from("bench_batches")
     .update({ status: "running" })
     .eq("id", batchId)
     .eq("status", "pending"); // only flip if still pending
+  console.log(`[worker] mark batch running: err=${markBatchErr?.message ?? "none"}`);
 
   // Fetch the URL for this result
-  const { data: resultRow } = await supabaseAdmin
+  const { data: resultRow, error: fetchRowErr } = await supabaseAdmin
     .from("bench_results")
     .select("url")
     .eq("id", resultId)
     .single();
+  console.log(`[worker] resultRow url=${resultRow?.url ?? "null"} err=${fetchRowErr?.message ?? "none"}`);
 
   if (!resultRow) {
+    console.error(`[worker] result not found for id=${resultId}`);
     return NextResponse.json({ error: "Result not found" }, { status: 404 });
   }
 
