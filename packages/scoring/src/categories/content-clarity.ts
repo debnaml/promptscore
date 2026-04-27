@@ -121,7 +121,7 @@ export const contentClarityChecks: Check[] = [
       const mainContent = extractMainText(html, 500);
 
       const result = await scoreHomepageClarity({ title, description, h1, mainContent });
-      if (!result.ok) return notScored(result.reason, { skipped: true });
+      if (!result.ok) return notScored(result.reason, { skipped: true, debug: result.debug ?? null });
 
       const score = normaliseHomepageClarity(result.data);
       return scored(score, {
@@ -152,7 +152,7 @@ export const contentClarityChecks: Check[] = [
         .slice(0, 4000 * 6); // rough char cap
 
       const result = await scoreQueryCoverage({ category: detectedCategory, location, content });
-      if (!result.ok) return notScored(result.reason, { skipped: true });
+      if (!result.ok) return notScored(result.reason, { skipped: true, debug: result.debug ?? null });
 
       const score = normaliseQueryCoverage(result.data);
       return scored(score, {

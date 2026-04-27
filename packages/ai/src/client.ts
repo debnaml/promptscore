@@ -35,6 +35,8 @@ export interface ClaudeSkipped {
   reason: string;
   promptVersion: string;
   inputHash: string;
+  /** Diagnostic details for failed runs (raw response, validation issues). Persisted to DB. */
+  debug?: { rawJson?: unknown; issues?: unknown };
 }
 
 export type ClaudeResult<T> = ClaudeSuccess<T> | ClaudeSkipped;
@@ -109,12 +111,13 @@ export async function callClaude<T extends z.ZodTypeAny>(
     return { json: toolUse.input, tokensUsed, latencyMs };
   }
 
-  const skipped = (reason: string): ClaudeSkipped => ({
+  const skipped = (reason: string, debug?: { rawJson?: unknown; issues?: unknown }): ClaudeSkipped => ({
     ok: false,
     skipped: true,
     reason,
     promptVersion,
     inputHash,
+    ...(debug ? { debug } : {}),
   });
 
   let firstResult: { json: unknown; tokensUsed: number; latencyMs: number } | undefined;
@@ -172,7 +175,10 @@ export async function callClaude<T extends z.ZodTypeAny>(
       issues: reparsed.error.issues,
       rawJson: JSON.stringify(retried.json).slice(0, 1000),
     });
-    return skipped(`AI grading temporarily unavailable (validation failed after retry)`);
+    return skipped(
+      `AI grading temporarily unavailable (validation failed after retry)`,
+      { rawJson: retried.json, issues: reparsed.error.issues }
+    );
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return skipped(`Retry error: ${msg}`);
