@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
-import { createBatchAction } from "./actions";
+import { CreateBatchForm } from "./create-batch-form";
 
 export const dynamic = "force-dynamic";
 
@@ -95,65 +95,7 @@ export default async function BenchmarksPage() {
       )}
 
       {/* Create form */}
-      <div id="new" className="bg-white rounded-md border border-slate-200 p-5">
-        <h2 className="text-sm font-semibold text-slate-800 mb-4">New benchmark batch</h2>
-        <form action={createBatchAction} className="space-y-4">
-          <div>
-            <label className="block text-sm text-slate-600 mb-1" htmlFor="name">
-              Batch name
-            </label>
-            <input
-              id="name"
-              name="name"
-              required
-              placeholder="UK luxury resorts — April 2026"
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-slate-600 mb-1" htmlFor="urls">
-              URLs{" "}
-              <span className="text-slate-400 font-normal">
-                (one per line — optionally: url, label)
-              </span>
-            </label>
-            <textarea
-              id="urls"
-              name="urls"
-              required
-              rows={8}
-              placeholder={`ikosresorts.com, Ikos Resorts\nsani-resort.com, Sani Resort\ngleneagles.com`}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-xs text-slate-400 mt-0.5">Max 100 URLs. https:// added automatically if missing.</p>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="w-40">
-              <label className="block text-sm text-slate-600 mb-1" htmlFor="delay_seconds">
-                Delay between scans (s)
-              </label>
-              <input
-                id="delay_seconds"
-                name="delay_seconds"
-                type="number"
-                min={10}
-                max={300}
-                defaultValue={30}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="rounded-md bg-slate-900 text-white text-sm font-medium px-4 py-2 hover:bg-slate-800"
-          >
-            Start batch
-          </button>
-        </form>
-      </div>
+      <CreateBatchForm />
     </div>
   );
 }

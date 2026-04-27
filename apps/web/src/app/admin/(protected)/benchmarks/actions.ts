@@ -1,7 +1,6 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { createClient, isAdminEmail } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { qstash } from "@/lib/qstash";
@@ -34,87 +33,79 @@ function parseEntries(raw: string): Array<{ url: string; label: string | null }>
     });
 }
 
-export async function createBatchAction(formData: FormData) {
-  const adminEmail = await requireAdmin();
+export async function createBatchAction(_prevState: string | null, formData: FormData): Promise<string | null> {
+  let batchId: string | null = null;
+  try {
+    const adminEmail = await requireAdmin();
 
-  const name = (formData.get("name") as string)?.trim();
-  const urlsRaw = formData.get("urls") as string;
-  const delaySeconds = Math.max(10, Number(formData.get("delay_seconds") ?? 30));
+    const name = (formData.get("name") as string)?.trim();
+    const urlsRaw = formData.get("urls") as string;
+    const delaySeconds = Math.max(10, Number(formData.get("delay_seconds") ?? 30));
 
-  if (!name) throw new Error("Name is required");
+    if (!name) return "Name is required";
 
-  const entries = parseEntries(urlsRaw ?? "");
-  if (entries.length === 0) throw new Error("No valid URLs provided");
-  if (entries.length > 100) throw new Error("Maximum 100 URLs per batch");
+    const entries = parseEntries(urlsRaw ?? "");
+    if (entries.length === 0) return "No valid URLs provided";
+    if (entries.length > 100) return "Maximum 100 URLs per batch";
 
-  // Validate all URLs
-  for (const e of entries) {
-    try { new URL(e.url); } catch {
-      throw new Error(`Invalid URL: ${e.url}`);
+    for (const e of entries) {
+      try { new URL(e.url); } catch {
+        return `Invalid URL: ${e.url}`;
+      }
     }
+
+    const { data: batch, error: batchErr } = await supabaseAdmin
+      .from("bench_batches")
+      .insert({ name, total_urls: entries.length, delay_seconds: delaySeconds, created_by: adminEmail })
+      .select("id")
+      .single();
+
+    if (batchErr || !batch) return `Failed to create batch: ${batchErr?.message}`;
+    batchId = batch.id;
+
+    const resultRows = entries.map((e, i) => ({
+      batch_id: batch.id,
+      url: e.url,
+      label: e.label,
+      position: i + 1,
+    }));
+
+    const { error: resErr } = await supabaseAdmin.from("bench_results").insert(resultRows);
+    if (resErr) return `Failed to create result rows: ${resErr.message}`;
+
+    const { data: firstResult } = await supabaseAdmin
+      .from("bench_results")
+      .select("id")
+      .eq("batch_id", batch.id)
+      .order("position", { ascending: true })
+      .limit(1)
+      .single();
+
+    if (!firstResult) return "No results found after insert";
+
+    const rawHost = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL ?? "localhost:3000";
+    const proto = rawHost.startsWith("localhost") ? "http" : "https";
+    const workerUrl = `${proto}://${rawHost}/api/admin/benchmarks/worker`;
+    const payload = JSON.stringify({ batchId: batch.id, resultId: firstResult.id });
+
+    if (process.env.QSTASH_TOKEN) {
+      await qstash.publish({
+        url: workerUrl,
+        body: payload,
+        headers: { "Content-Type": "application/json" },
+      });
+    } else {
+      fetch(workerUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).catch(console.error);
+    }
+  } catch (e) {
+    return `Unexpected error: ${String(e)}`;
   }
 
-  // Create batch row
-  const { data: batch, error: batchErr } = await supabaseAdmin
-    .from("bench_batches")
-    .insert({
-      name,
-      total_urls: entries.length,
-      delay_seconds: delaySeconds,
-      created_by: adminEmail,
-    })
-    .select("id")
-    .single();
-
-  if (batchErr || !batch) throw new Error("Failed to create batch");
-
-  // Create result rows
-  const resultRows = entries.map((e, i) => ({
-    batch_id: batch.id,
-    url: e.url,
-    label: e.label,
-    position: i + 1,
-  }));
-
-  const { error: resErr } = await supabaseAdmin
-    .from("bench_results")
-    .insert(resultRows);
-
-  if (resErr) throw new Error("Failed to create result rows");
-
-  // Fetch first result by position to kick off the queue
-  const { data: results } = await supabaseAdmin
-    .from("bench_results")
-    .select("id")
-    .eq("batch_id", batch.id)
-    .order("position", { ascending: true })
-    .limit(1);
-
-  if (!results?.length) throw new Error("No results found after insert");
-
-  // Enqueue first URL
-  const headersList = await headers();
-  const host = headersList.get("host") ?? "localhost:3000";
-  const proto = host.startsWith("localhost") ? "http" : "https";
-  const workerUrl = `${proto}://${host}/api/admin/benchmarks/worker`;
-  const payload = JSON.stringify({ batchId: batch.id, resultId: results[0].id });
-
-  if (process.env.QSTASH_TOKEN) {
-    await qstash.publish({
-      url: workerUrl,
-      body: payload,
-      headers: { "Content-Type": "application/json" },
-    });
-  } else {
-    // Local dev: fire-and-forget without QStash
-    fetch(workerUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: payload,
-    }).catch(console.error);
-  }
-
-  redirect(`/admin/benchmarks/${batch.id}`);
+  redirect(`/admin/benchmarks/${batchId}`);
 }
 
 export async function updateResultNotesAction(formData: FormData) {
