@@ -1,25 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 
-/**
- * HTTP Basic Auth guard for development / pre-launch.
- * Set SITE_PASSWORD in env vars to enable. Leave unset (or empty) to disable.
- * Username is ignored — any value works.
- */
-export function middleware(request: NextRequest) {
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "lee@pp-worldwide.com")
+  .split(",")
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
+
+function checkBasicAuth(request: NextRequest): NextResponse | null {
   const password = process.env.SITE_PASSWORD;
-
-  // No password set → pass through
-  if (!password) return NextResponse.next();
+  if (!password) return null;
 
   const auth = request.headers.get("authorization");
-
   if (auth) {
     const [scheme, encoded] = auth.split(" ");
     if (scheme === "Basic" && encoded) {
       const decoded = Buffer.from(encoded, "base64").toString("utf-8");
       const colonIdx = decoded.indexOf(":");
       const providedPassword = colonIdx !== -1 ? decoded.slice(colonIdx + 1) : decoded;
-      if (providedPassword === password) return NextResponse.next();
+      if (providedPassword === password) return null;
     }
   }
 
@@ -31,7 +29,33 @@ export function middleware(request: NextRequest) {
   });
 }
 
+export async function middleware(request: NextRequest) {
+  // 1. Site-wide HTTP Basic Auth gate (development pre-launch)
+  const basicAuthFail = checkBasicAuth(request);
+  if (basicAuthFail) return basicAuthFail;
+
+  // 2. Refresh Supabase session cookie on every request
+  const { response, user } = await updateSession(request);
+
+  // 3. Gate /admin and /api/admin to allow-listed admin emails
+  const path = request.nextUrl.pathname;
+  const isAdminRoute =
+    (path.startsWith("/admin") && path !== "/admin/login") ||
+    path.startsWith("/api/admin");
+
+  if (isAdminRoute) {
+    const email = user?.email?.toLowerCase();
+    if (!email || !ADMIN_EMAILS.includes(email)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      url.searchParams.set("next", path);
+      return NextResponse.redirect(url);
+    }
+  }
+
+  return response;
+}
+
 export const config = {
-  // Apply to all routes except Next.js internals and static assets
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
