@@ -30,17 +30,19 @@ function checkBasicAuth(request: NextRequest): NextResponse | null {
 }
 
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  // QStash worker authenticates via signature — bypass all auth gates
+  if (path === "/api/admin/benchmarks/worker") {
+    return NextResponse.next();
+  }
+
   // 1. Site-wide HTTP Basic Auth gate (development pre-launch)
   const basicAuthFail = checkBasicAuth(request);
   if (basicAuthFail) return basicAuthFail;
 
   // 2. Refresh Supabase session cookie on every request
   const { response, user } = await updateSession(request);
-
-  // 3. Gate /admin and /api/admin to allow-listed admin emails
-  const path = request.nextUrl.pathname;
-  // Worker is called by QStash (no session) — it authenticates via signature verification instead
-  if (path === "/api/admin/benchmarks/worker") return response;
 
   const isAdminRoute =
     (path.startsWith("/admin") && path !== "/admin/login") ||
