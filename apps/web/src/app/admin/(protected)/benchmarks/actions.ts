@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient, isAdminEmail } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { qstash } from "@/lib/qstash";
@@ -111,6 +112,7 @@ export async function createBatchAction(_prevState: string | null, formData: For
     return `Unexpected error: ${String(e)}`;
   }
 
+  revalidatePath("/admin/benchmarks");
   redirect(`/admin/benchmarks/${batchId}`);
 }
 
