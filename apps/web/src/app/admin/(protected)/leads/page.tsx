@@ -185,7 +185,7 @@ export default async function LeadsPage({
                       rel="noopener noreferrer"
                       className="text-slate-700 hover:underline"
                     >
-                      {new URL(r.website).hostname}
+                      {(() => { try { return new URL(r.website).hostname; } catch { return r.website; } })()}
                     </a>
                   ) : "—"}
                 </td>
