@@ -42,11 +42,16 @@ export const contentClarityChecks: Check[] = [
       const required = ["main", "nav", "header", "footer"] as const;
       const present = required.filter((k) => lm[k] > 0);
       const missing = required.filter((k) => lm[k] === 0);
-      // Full credit: main, article|section, nav, header, footer all present
-      const hasArticleOrSection = lm.article > 0 || lm.section > 0;
-      const allPresent = present.length === 4 && hasArticleOrSection;
-      const score = allPresent ? 1 : present.length >= 2 ? 0.5 : 0;
-      return scored(score, { landmarks: lm, present, missing });
+      // Tiered: all 4 core landmarks = 1.0, 3 of 4 = 0.75, 2 of 4 = 0.5, otherwise 0
+      let score: number;
+      if (present.length === 4) score = 1;
+      else if (present.length === 3) score = 0.75;
+      else if (present.length === 2) score = 0.5;
+      else score = 0;
+      const notes = missing.length > 0
+        ? `Missing landmarks: ${missing.map((m) => `<${m}>`).join(", ")}`
+        : undefined;
+      return scored(score, { landmarks: lm, present, missing }, notes);
     },
   },
 

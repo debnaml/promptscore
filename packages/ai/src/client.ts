@@ -149,8 +149,11 @@ export async function callClaude<T extends z.ZodTypeAny>(
     };
   }
 
-  // Schema validation failed — retry once
-  console.warn(`[ai:${checkKey}] Schema validation failed, retrying`);
+  // Schema validation failed — log raw response and retry once
+  console.warn(`[ai:${checkKey}] Schema validation failed (attempt 1):`, {
+    issues: parsed.error.issues,
+    rawJson: JSON.stringify(firstResult.json).slice(0, 1000),
+  });
   try {
     const retried = await attempt();
     const reparsed = schema.safeParse(retried.json);
@@ -165,6 +168,10 @@ export async function callClaude<T extends z.ZodTypeAny>(
         inputHash,
       };
     }
+    console.error(`[ai:${checkKey}] Schema validation failed (retry):`, {
+      issues: reparsed.error.issues,
+      rawJson: JSON.stringify(retried.json).slice(0, 1000),
+    });
     return skipped(`AI grading temporarily unavailable (validation failed after retry)`);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
