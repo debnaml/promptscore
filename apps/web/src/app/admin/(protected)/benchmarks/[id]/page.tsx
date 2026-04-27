@@ -93,13 +93,9 @@ export default async function BenchmarkDetailPage({
           <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
         </div>
         {(batch.status === "running" || batch.status === "pending") && (
-          <button
-            onClick={undefined}
-            className="text-xs text-slate-400 hover:text-slate-600 underline"
-            title="Refresh page to see latest progress"
-          >
-            Refresh ↻
-          </button>
+          <span className="text-xs text-slate-400" title="Refresh page to see latest progress">
+            (refresh page for progress)
+          </span>
         )}
         {batch.completed_at && (
           <span className="text-xs">Completed {new Date(batch.completed_at).toLocaleString()}</span>
@@ -133,7 +129,9 @@ export default async function BenchmarkDetailPage({
               const overall = scan?.overall_score;
               const topGap = scan?.summary?.priority_actions?.[0] ?? scan?.summary?.negatives?.[0] ?? null;
               const scanUrl = scan?.url ?? r.url;
-              const displayName = r.label || new URL(r.url).hostname;
+              let hostname = r.url;
+              try { hostname = new URL(r.url).hostname; } catch { /* keep raw */ }
+              const displayName = r.label || hostname;
 
               return (
                 <tr key={r.id} className="border-t border-slate-100 align-top">
@@ -150,7 +148,7 @@ export default async function BenchmarkDetailPage({
                     </div>
                     <div className="text-xs text-slate-400 truncate" title={r.url}>
                       <a href={scanUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                        {new URL(r.url).hostname}
+                        {hostname}
                       </a>
                     </div>
                   </td>
