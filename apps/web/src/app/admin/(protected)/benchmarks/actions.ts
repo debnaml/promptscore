@@ -84,9 +84,8 @@ export async function createBatchAction(_prevState: string | null, formData: For
 
     if (!firstResult) return "No results found after insert";
 
-    const rawHost = process.env.NEXT_PUBLIC_APP_URL ?? process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL ?? "localhost:3000";
-    const proto = rawHost.startsWith("localhost") ? "http" : "https";
-    const workerUrl = `${proto}://${rawHost}/api/admin/benchmarks/worker`;
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL ?? "localhost:3000").replace(/\/$/, "");
+    const workerUrl = appUrl.startsWith("http") ? `${appUrl}/api/admin/benchmarks/worker` : `https://${appUrl}/api/admin/benchmarks/worker`;
     console.log("[bench] worker URL:", workerUrl);
     const payload = JSON.stringify({ batchId: batch.id, resultId: firstResult.id });
 
