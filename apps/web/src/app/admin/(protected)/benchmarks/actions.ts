@@ -88,18 +88,23 @@ export async function createBatchAction(_prevState: string | null, formData: For
     const workerUrl = `${proto}://${rawHost}/api/admin/benchmarks/worker`;
     const payload = JSON.stringify({ batchId: batch.id, resultId: firstResult.id });
 
-    if (process.env.QSTASH_TOKEN) {
-      await qstash.publish({
-        url: workerUrl,
-        body: payload,
-        headers: { "Content-Type": "application/json" },
-      });
-    } else {
-      fetch(workerUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: payload,
-      }).catch(console.error);
+    try {
+      if (process.env.QSTASH_TOKEN) {
+        await qstash.publish({
+          url: workerUrl,
+          body: payload,
+          headers: { "Content-Type": "application/json" },
+        });
+      } else {
+        fetch(workerUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+        }).catch(console.error);
+      }
+    } catch (qe) {
+      console.error("[bench] QStash publish failed:", qe);
+      // Don't block redirect — batch + results are created, worker can be retried
     }
   } catch (e) {
     return `Unexpected error: ${String(e)}`;
