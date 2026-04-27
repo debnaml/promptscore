@@ -76,13 +76,21 @@ export async function createBatchAction(formData: FormData) {
     position: i + 1,
   }));
 
-  const { data: results, error: resErr } = await supabaseAdmin
+  const { error: resErr } = await supabaseAdmin
     .from("bench_results")
-    .insert(resultRows)
-    .select("id")
-    .order("position");
+    .insert(resultRows);
 
-  if (resErr || !results?.length) throw new Error("Failed to create result rows");
+  if (resErr) throw new Error("Failed to create result rows");
+
+  // Fetch first result by position to kick off the queue
+  const { data: results } = await supabaseAdmin
+    .from("bench_results")
+    .select("id")
+    .eq("batch_id", batch.id)
+    .order("position", { ascending: true })
+    .limit(1);
+
+  if (!results?.length) throw new Error("No results found after insert");
 
   // Enqueue first URL
   const headersList = await headers();
