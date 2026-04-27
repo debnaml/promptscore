@@ -55,6 +55,23 @@ function buildClient(): Anthropic {
 }
 
 /**
+ * Unwrap a Claude tool_use response that has been wrapped in an extra single-key
+ * envelope. Claude occasionally returns `{ outcome: { ...real fields... } }` or
+ * `{ result: {...} }` instead of the flat structure requested. If the input is an
+ * object with exactly one key whose value is itself an object, unwrap one level.
+ */
+function unwrapClaudeResponse(input: unknown): unknown {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return input;
+  const keys = Object.keys(input as Record<string, unknown>);
+  if (keys.length !== 1) return input;
+  const inner = (input as Record<string, unknown>)[keys[0]];
+  if (!inner || typeof inner !== "object" || Array.isArray(inner)) return input;
+  // Only unwrap if the inner object has multiple keys (looks like the real payload)
+  if (Object.keys(inner).length < 2) return input;
+  return inner;
+}
+
+/**
  * Call Claude with forced tool-use to get structured JSON output validated by a Zod schema.
  * Retries once on parse/validation failure, then returns a ClaudeSkipped result.
  */
@@ -108,7 +125,7 @@ export async function callClaude<T extends z.ZodTypeAny>(
       throw new Error("Claude did not return a tool_use block");
     }
 
-    return { json: toolUse.input, tokensUsed, latencyMs };
+    return { json: unwrapClaudeResponse(toolUse.input), tokensUsed, latencyMs };
   }
 
   const skipped = (reason: string, debug?: { rawJson?: unknown; issues?: unknown }): ClaudeSkipped => ({
