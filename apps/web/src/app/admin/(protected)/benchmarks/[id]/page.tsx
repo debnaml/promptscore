@@ -1,26 +1,13 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ALL_CHECKS, CHECK_COPY } from "@promptscore/scoring";
 import { DeleteBatchButton } from "../delete-batch-button";
+import { ResultsTable, type ResultRow, type CheckMeta } from "./results-table";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
-
-const CATEGORIES = [
-  { key: "crawler_access",  label: "Crawler" },
-  { key: "structured_data", label: "Structured data" },
-  { key: "content_clarity", label: "Content" },
-  { key: "ai_specific",     label: "AI" },
-  { key: "authority_trust", label: "Authority" },
-];
-
-function scoreColor(score: number | null | undefined): string {
-  if (score == null) return "bg-slate-100 text-slate-400";
-  if (score >= 70) return "bg-green-100 text-green-800";
-  if (score >= 40) return "bg-yellow-100 text-yellow-800";
-  return "bg-red-100 text-red-800";
-}
 
 const STATUS_BADGE: Record<string, string> = {
   pending:  "bg-slate-100 text-slate-500",
@@ -28,6 +15,12 @@ const STATUS_BADGE: Record<string, string> = {
   complete: "bg-green-100 text-green-700",
   failed:   "bg-red-100 text-red-700",
 };
+
+const CHECKS_META: CheckMeta[] = ALL_CHECKS.map((c) => ({
+  key: c.key,
+  category: c.category,
+  title: CHECK_COPY[c.key]?.title ?? c.key,
+}));
 
 export default async function BenchmarkDetailPage({
   params,
@@ -48,24 +41,73 @@ export default async function BenchmarkDetailPage({
     .eq("batch_id", params.id)
     .order("position");
 
-  // Sort complete results by overall score desc; pending/failed go to end
-  const sorted = [...(results ?? [])].sort((a, b) => {
-    const sa = a.scans?.overall_score ?? -1;
-    const sb = b.scans?.overall_score ?? -1;
-    return sb - sa;
+  const scanIds = (results ?? [])
+    .map((r) => r.scan_id)
+    .filter((x): x is string => !!x);
+
+  const checksByScanId = new Map<string, Record<string, number | null>>();
+  if (scanIds.length > 0) {
+    const { data: checkRows } = await supabaseAdmin
+      .from("scan_checks")
+      .select("scan_id, check_key, score")
+      .in("scan_id", scanIds);
+    for (const row of checkRows ?? []) {
+      const r = row as { scan_id: string; check_key: string; score: number | null };
+      const map = checksByScanId.get(r.scan_id) ?? {};
+      // DB stores score as 0–100 (or null for not_scored)
+      map[r.check_key] = r.score == null || r.score < 0 ? null : r.score;
+      checksByScanId.set(r.scan_id, map);
+    }
+  }
+
+  const rows: ResultRow[] = (results ?? []).map((r) => {
+    const scan = r.scans as {
+      overall_score?: number;
+      category_scores?: Record<string, number>;
+      summary?: {
+        priority_actions?: Array<string | { title?: string; howToFix?: string }>;
+        negatives?: Array<string | { title?: string }>;
+      };
+      url?: string;
+      status?: string;
+    } | null;
+
+    const rawTopGap =
+      scan?.summary?.priority_actions?.[0] ?? scan?.summary?.negatives?.[0] ?? null;
+    const topGap =
+      typeof rawTopGap === "string"
+        ? rawTopGap
+        : (rawTopGap as { title?: string; howToFix?: string } | null)?.title ??
+          (rawTopGap as { title?: string; howToFix?: string } | null)?.howToFix ??
+          null;
+
+    let hostname = r.url;
+    try { hostname = new URL(r.url).hostname; } catch { /* keep raw */ }
+
+    return {
+      id: r.id,
+      url: r.url,
+      label: r.label,
+      position: r.position,
+      status: r.status,
+      error: r.error,
+      scan_id: r.scan_id,
+      hostname,
+      scanUrl: scan?.url ?? r.url,
+      overall: scan?.overall_score ?? null,
+      category_scores: scan?.category_scores ?? null,
+      check_scores: r.scan_id ? checksByScanId.get(r.scan_id) ?? {} : {},
+      topGap,
+    };
   });
 
-  const complete = sorted.filter((r) => r.status === "complete");
-  const notComplete = sorted.filter((r) => r.status !== "complete");
-  const ranked = [...complete, ...notComplete];
-
+  const complete = rows.filter((r) => r.status === "complete");
   const pct = batch.total_urls > 0
     ? Math.round(((batch.completed_urls + batch.failed_urls) / batch.total_urls) * 100)
     : 0;
 
   return (
-    <div className="p-6 max-w-6xl">
-      {/* Header */}
+    <div className="p-6 max-w-[1600px]">
       <div className="flex items-start justify-between mb-2">
         <div>
           <Link href="/admin/benchmarks" prefetch={false} className="text-xs text-slate-400 hover:text-slate-600">
@@ -80,11 +122,22 @@ export default async function BenchmarkDetailPage({
           >
             Export CSV
           </a>
+          <a
+            href={`/api/admin/benchmarks/${params.id}/export?evidence=1`}
+            className="rounded-md border border-slate-300 text-sm px-3 py-1.5 hover:bg-slate-50"
+          >
+            CSV + evidence
+          </a>
+          <a
+            href={`/api/admin/benchmarks/${params.id}/blog`}
+            className="rounded-md bg-slate-900 text-white text-sm px-3 py-1.5 hover:bg-slate-800"
+          >
+            Export for blog
+          </a>
           <DeleteBatchButton batchId={batch.id} name={batch.name} />
         </div>
       </div>
 
-      {/* Status bar */}
       <div className="flex items-center gap-4 mb-6 text-sm text-slate-500">
         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[batch.status] ?? ""}`}>
           {batch.status}
@@ -97,141 +150,35 @@ export default async function BenchmarkDetailPage({
           <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
         </div>
         {(batch.status === "running" || batch.status === "pending") && (
-          <span className="text-xs text-slate-400" title="Refresh page to see latest progress">
-            (refresh page for progress)
-          </span>
+          <span className="text-xs text-slate-400">(refresh page for progress)</span>
         )}
         {batch.completed_at && (
           <span className="text-xs">Completed {new Date(batch.completed_at).toLocaleString()}</span>
         )}
       </div>
 
-      {/* Results table */}
-      <div className="bg-white rounded-md border border-slate-200 overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-400 border-b border-slate-100">
-            <tr>
-              <th className="px-3 py-2 text-left w-8">#</th>
-              <th className="px-3 py-2 text-left">URL / Label</th>
-              <th className="px-3 py-2 text-center">Overall</th>
-              {CATEGORIES.map((c) => (
-                <th key={c.key} className="px-3 py-2 text-center">{c.label}</th>
-              ))}
-              <th className="px-3 py-2 text-left">Top gap</th>
-              <th className="px-3 py-2 text-left">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ranked.map((r, idx) => {
-              const scan = r.scans as {
-                overall_score?: number;
-                category_scores?: Record<string, number>;
-                summary?: {
-                  priority_actions?: Array<string | { title?: string; howToFix?: string }>;
-                  negatives?: Array<string | { title?: string }>;
-                };
-                url?: string;
-                status?: string;
-              } | null;
-              const overall = scan?.overall_score;
-              const rawTopGap = scan?.summary?.priority_actions?.[0] ?? scan?.summary?.negatives?.[0] ?? null;
-              const topGap = typeof rawTopGap === "string"
-                ? rawTopGap
-                : (rawTopGap as { title?: string; howToFix?: string } | null)?.title
-                  ?? (rawTopGap as { title?: string; howToFix?: string } | null)?.howToFix
-                  ?? null;
-              const scanUrl = scan?.url ?? r.url;
-              let hostname = r.url;
-              try { hostname = new URL(r.url).hostname; } catch { /* keep raw */ }
-              const displayName = r.label || hostname;
+      <ResultsTable rows={rows} checks={CHECKS_META} />
 
-              return (
-                <tr key={r.id} className="border-t border-slate-100 align-top">
-                  <td className="px-3 py-2 text-slate-400 text-xs tabular-nums">
-                    {r.status === "complete" ? idx + 1 : "—"}
-                  </td>
-                  <td className="px-3 py-2 max-w-[180px]">
-                    <div className="font-medium text-slate-900 truncate" title={r.url}>
-                      {r.scan_id ? (
-                        <Link href={`/admin/scans/${r.scan_id}`} prefetch={false} className="hover:underline text-blue-700">
-                          {displayName}
-                        </Link>
-                      ) : displayName}
-                    </div>
-                    <div className="text-xs text-slate-400 truncate" title={r.url}>
-                      <a href={scanUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                        {hostname}
-                      </a>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-center">
-                    {overall != null ? (
-                      <span className={`inline-block rounded px-2 py-0.5 text-xs font-bold tabular-nums ${scoreColor(overall)}`}>
-                        {overall}
-                      </span>
-                    ) : (
-                      <span className="text-slate-300 text-xs">—</span>
-                    )}
-                  </td>
-                  {CATEGORIES.map((c) => {
-                    const s = scan?.category_scores?.[c.key];
-                    return (
-                      <td key={c.key} className="px-3 py-2 text-center">
-                        {s != null ? (
-                          <span className={`inline-block rounded px-1.5 py-0.5 text-xs tabular-nums ${scoreColor(s)}`}>
-                            {s}
-                          </span>
-                        ) : (
-                          <span className="text-slate-300 text-xs">—</span>
-                        )}
-                      </td>
-                    );
-                  })}
-                  <td className="px-3 py-2 text-xs text-slate-600 max-w-[200px]">
-                    {topGap ? (
-                      <span title={topGap} className="line-clamp-2">{topGap}</span>
-                    ) : (
-                      <span className="text-slate-300">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[r.status] ?? ""}`}>
-                      {r.status}
-                    </span>
-                    {r.error && (
-                      <p className="text-xs text-red-500 mt-0.5" title={r.error}>
-                        {r.error.slice(0, 60)}
-                      </p>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Stats footer */}
       {complete.length > 1 && (
         <div className="mt-4 grid grid-cols-3 gap-3">
           <StatCard
             label="Average score"
             value={String(Math.round(
-              complete.reduce((s, r) => s + (r.scans?.overall_score ?? 0), 0) / complete.length
+              complete.reduce((s, r) => s + (r.overall ?? 0), 0) / complete.length
             ))}
           />
           <StatCard
             label="Highest"
-            value={String(Math.max(...complete.map((r) => r.scans?.overall_score ?? 0)))}
+            value={String(Math.max(...complete.map((r) => r.overall ?? 0)))}
             sub={complete.find((r) =>
-              r.scans?.overall_score === Math.max(...complete.map((x) => x.scans?.overall_score ?? 0))
+              r.overall === Math.max(...complete.map((x) => x.overall ?? 0))
             )?.label ?? ""}
           />
           <StatCard
             label="Lowest"
-            value={String(Math.min(...complete.map((r) => r.scans?.overall_score ?? 100)))}
+            value={String(Math.min(...complete.map((r) => r.overall ?? 100)))}
             sub={complete.find((r) =>
-              r.scans?.overall_score === Math.min(...complete.map((x) => x.scans?.overall_score ?? 100))
+              r.overall === Math.min(...complete.map((x) => x.overall ?? 100))
             )?.label ?? ""}
           />
         </div>
