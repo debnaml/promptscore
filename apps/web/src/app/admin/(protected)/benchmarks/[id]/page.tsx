@@ -122,12 +122,20 @@ export default async function BenchmarkDetailPage({
               const scan = r.scans as {
                 overall_score?: number;
                 category_scores?: Record<string, number>;
-                summary?: { priority_actions?: string[]; negatives?: string[] };
+                summary?: {
+                  priority_actions?: Array<string | { title?: string; howToFix?: string }>;
+                  negatives?: Array<string | { title?: string }>;
+                };
                 url?: string;
                 status?: string;
               } | null;
               const overall = scan?.overall_score;
-              const topGap = scan?.summary?.priority_actions?.[0] ?? scan?.summary?.negatives?.[0] ?? null;
+              const rawTopGap = scan?.summary?.priority_actions?.[0] ?? scan?.summary?.negatives?.[0] ?? null;
+              const topGap = typeof rawTopGap === "string"
+                ? rawTopGap
+                : (rawTopGap as { title?: string; howToFix?: string } | null)?.title
+                  ?? (rawTopGap as { title?: string; howToFix?: string } | null)?.howToFix
+                  ?? null;
               const scanUrl = scan?.url ?? r.url;
               let hostname = r.url;
               try { hostname = new URL(r.url).hostname; } catch { /* keep raw */ }
