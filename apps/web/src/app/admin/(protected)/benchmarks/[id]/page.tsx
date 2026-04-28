@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { DeleteBatchButton } from "../delete-batch-button";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 const CATEGORIES = [
   { key: "crawler_access",  label: "Crawler" },
@@ -66,7 +68,7 @@ export default async function BenchmarkDetailPage({
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
         <div>
-          <Link href="/admin/benchmarks" className="text-xs text-slate-400 hover:text-slate-600">
+          <Link href="/admin/benchmarks" prefetch={false} className="text-xs text-slate-400 hover:text-slate-600">
             ← Benchmarks
           </Link>
           <h1 className="text-xl font-semibold text-slate-900 mt-0.5">{batch.name}</h1>
@@ -151,7 +153,7 @@ export default async function BenchmarkDetailPage({
                   <td className="px-3 py-2 max-w-[180px]">
                     <div className="font-medium text-slate-900 truncate" title={r.url}>
                       {r.scan_id ? (
-                        <Link href={`/admin/scans/${r.scan_id}`} className="hover:underline text-blue-700">
+                        <Link href={`/admin/scans/${r.scan_id}`} prefetch={false} className="hover:underline text-blue-700">
                           {displayName}
                         </Link>
                       ) : displayName}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { bulkDeleteBatchesAction } from "./actions";
 
@@ -145,12 +144,12 @@ export function BatchesTable({ batches }: { batches: Batch[] }) {
                   {new Date(b.created_at).toLocaleDateString()}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Link
+                  <a
                     href={`/admin/benchmarks/${b.id}`}
                     className="text-blue-600 hover:underline text-xs"
                   >
                     View →
-                  </Link>
+                  </a>
                 </td>
               </tr>
             );
