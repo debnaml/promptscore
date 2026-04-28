@@ -125,3 +125,13 @@ export async function updateResultNotesAction(formData: FormData) {
     .update({ notes })
     .eq("id", resultId);
 }
+
+export async function deleteBatchAction(formData: FormData) {
+  await requireAdmin();
+  const batchId = formData.get("batch_id") as string;
+  if (!batchId) return;
+  // bench_results has ON DELETE CASCADE on batch_id, so deleting the batch removes its results.
+  await supabaseAdmin.from("bench_batches").delete().eq("id", batchId);
+  revalidatePath("/admin/benchmarks");
+  redirect("/admin/benchmarks");
+}

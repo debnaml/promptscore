@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DeleteBatchButton } from "../delete-batch-button";
 
 export const dynamic = "force-dynamic";
 
@@ -70,13 +71,14 @@ export default async function BenchmarkDetailPage({
           </Link>
           <h1 className="text-xl font-semibold text-slate-900 mt-0.5">{batch.name}</h1>
         </div>
-        <div className="flex gap-2 mt-1">
+        <div className="flex gap-2 mt-1 items-center">
           <a
             href={`/api/admin/benchmarks/${params.id}/export`}
             className="rounded-md border border-slate-300 text-sm px-3 py-1.5 hover:bg-slate-50"
           >
             Export CSV
           </a>
+          <DeleteBatchButton batchId={batch.id} name={batch.name} />
         </div>
       </div>
 

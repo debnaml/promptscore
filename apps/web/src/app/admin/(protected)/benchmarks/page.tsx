@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
 import { CreateBatchForm } from "./create-batch-form";
+import { DeleteBatchButton } from "./delete-batch-button";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -80,12 +81,15 @@ export default async function BenchmarksPage() {
                       {new Date(b.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/admin/benchmarks/${b.id}`}
-                        className="text-blue-600 hover:underline text-xs"
-                      >
-                        View →
-                      </Link>
+                      <div className="flex justify-end gap-3">
+                        <Link
+                          href={`/admin/benchmarks/${b.id}`}
+                          className="text-blue-600 hover:underline text-xs"
+                        >
+                          View →
+                        </Link>
+                        <DeleteBatchButton batchId={b.id} name={b.name} />
+                      </div>
                     </td>
                   </tr>
                 );
