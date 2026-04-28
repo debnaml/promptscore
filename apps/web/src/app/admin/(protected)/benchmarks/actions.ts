@@ -135,3 +135,15 @@ export async function deleteBatchAction(formData: FormData) {
   revalidatePath("/admin/benchmarks");
   redirect("/admin/benchmarks");
 }
+
+export async function bulkDeleteBatchesAction(ids: string[]): Promise<{ deleted: number; error?: string }> {
+  await requireAdmin();
+  if (!ids || ids.length === 0) return { deleted: 0 };
+  const { error, count } = await supabaseAdmin
+    .from("bench_batches")
+    .delete({ count: "exact" })
+    .in("id", ids);
+  if (error) return { deleted: 0, error: error.message };
+  revalidatePath("/admin/benchmarks");
+  return { deleted: count ?? 0 };
+}

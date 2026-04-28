@@ -1,17 +1,9 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import Link from "next/link";
 import { CreateBatchForm } from "./create-batch-form";
-import { DeleteBatchButton } from "./delete-batch-button";
+import { BatchesTable } from "./batches-table";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-
-const STATUS_BADGE: Record<string, string> = {
-  pending:  "bg-slate-100 text-slate-600",
-  running:  "bg-blue-100 text-blue-700",
-  complete: "bg-green-100 text-green-700",
-  failed:   "bg-red-100 text-red-700",
-};
 
 export default async function BenchmarksPage() {
   const { data: batches } = await supabaseAdmin
@@ -37,66 +29,7 @@ export default async function BenchmarksPage() {
           No batches yet. Create one below.
         </div>
       ) : (
-        <div className="bg-white rounded-md border border-slate-200 overflow-hidden mb-8">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-400 border-b border-slate-100">
-              <tr>
-                <th className="px-4 py-2 text-left">Name</th>
-                <th className="px-4 py-2 text-left">Status</th>
-                <th className="px-4 py-2 text-left">Progress</th>
-                <th className="px-4 py-2 text-left">Created</th>
-                <th className="px-4 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {(batches ?? []).map((b) => {
-                const pct = b.total_urls > 0
-                  ? Math.round(((b.completed_urls + b.failed_urls) / b.total_urls) * 100)
-                  : 0;
-                return (
-                  <tr key={b.id} className="border-t border-slate-100">
-                    <td className="px-4 py-3 font-medium">{b.name}</td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[b.status] ?? ""}`}>
-                        {b.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-blue-500 rounded-full"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-slate-500">
-                          {b.completed_urls + b.failed_urls}/{b.total_urls}
-                        </span>
-                        {b.failed_urls > 0 && (
-                          <span className="text-xs text-red-500">{b.failed_urls} failed</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      {new Date(b.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-3">
-                        <Link
-                          href={`/admin/benchmarks/${b.id}`}
-                          className="text-blue-600 hover:underline text-xs"
-                        >
-                          View →
-                        </Link>
-                        <DeleteBatchButton batchId={b.id} name={b.name} />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <BatchesTable batches={batches ?? []} />
       )}
 
       {/* Create form */}
