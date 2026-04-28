@@ -305,7 +305,8 @@ export async function GET(
   }
   let mostCommonWeakness = "";
   if (negCounts.size > 0) {
-    const [topKey] = [...negCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+    const entries = Array.from(negCounts.entries()).sort((a, b) => b[1] - a[1]);
+    const topKey = entries[0][0];
     mostCommonWeakness = CHECK_COPY[topKey]?.title ?? topKey;
   }
 
