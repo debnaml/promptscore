@@ -7,7 +7,9 @@ export interface PageSpeedResult {
 export async function fetchPageSpeed(
   url: string,
   apiKey?: string,
-  fetchFn: typeof fetch = globalThis.fetch
+  // fetchFn is accepted for test injection but PageSpeed always uses native fetch
+  // to bypass Next.js's patched globalThis.fetch which adds its own timeouts
+  _fetchFn: typeof fetch = globalThis.fetch
 ): Promise<PageSpeedResult> {
   const fetchedAt = new Date();
   const key = apiKey ?? process.env["PAGESPEED_API_KEY"];
@@ -22,10 +24,15 @@ export async function fetchPageSpeed(
   endpoint.searchParams.set("key", key);
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 30_000);
+  const timer = setTimeout(() => controller.abort(), 55_000);
+
+  // Use Node's native fetch (undici) directly to avoid Next.js's patched fetch timeouts
+  const nativeFetch: typeof fetch =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).__undici_fetch ?? (await import("undici").then((m) => m.fetch).catch(() => globalThis.fetch));
 
   try {
-    const res = await fetchFn(endpoint.href, { signal: controller.signal });
+    const res = await nativeFetch(endpoint.href, { signal: controller.signal });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       if (res.status === 429) {
@@ -40,7 +47,7 @@ export async function fetchPageSpeed(
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     const isTimeout = msg.toLowerCase().includes("abort") || msg.toLowerCase().includes("timeout");
-    return { mobile: null, fetchedAt, error: isTimeout ? "PageSpeed request timed out" : msg };
+    return { mobile: null, fetchedAt, error: isTimeout ? `PageSpeed request timed out after 55s` : msg };
   } finally {
     clearTimeout(timer);
   }
