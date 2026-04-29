@@ -131,8 +131,11 @@ export const crawlerAccessChecks: Check[] = [
     weight: 1,
     run(ctx) {
       const psi = ctx.pagespeed;
-      if (!psi?.mobile) {
-        return notScored("PageSpeed result not available — will be fetched separately");
+      if (!psi) {
+        return notScored("PageSpeed fetch did not run");
+      }
+      if (psi.mobile === null) {
+        return notScored(`PageSpeed mobile score unavailable: ${psi.error ?? "unknown error"}`);
       }
       const s = psi.mobile;
       const score = s >= 75 ? 1 : s >= 50 ? 0.5 : 0;
