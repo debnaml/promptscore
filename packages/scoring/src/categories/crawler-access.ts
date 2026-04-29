@@ -139,7 +139,8 @@ export const crawlerAccessChecks: Check[] = [
       }
       const s = psi.mobile;
       const score = s >= 75 ? 1 : s >= 50 ? 0.5 : 0;
-      return scored(score, { mobile_score: s });
+      const label = s >= 75 ? "Good" : s >= 50 ? "Needs improvement" : "Poor";
+      return scored(score, { mobile_score: s, label }, `Lighthouse mobile score: ${s}/100 (${label})`);
     },
   },
 ];
