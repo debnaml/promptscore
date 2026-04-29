@@ -4,11 +4,38 @@ export interface PageSpeedResult {
   error?: string;
 }
 
+function fetchWithNodeHttps(url: string, signal: AbortSignal): Promise<{ ok: boolean; status: number; text: () => Promise<string>; json: () => Promise<unknown> }> {
+  return new Promise((resolve, reject) => {
+    import("node:https").then(({ request }) => {
+      const parsed = new URL(url);
+      const chunks: Buffer[] = [];
+      const req = request(
+        { hostname: parsed.hostname, path: parsed.pathname + parsed.search, method: "GET" },
+        (res) => {
+          res.on("data", (chunk: Buffer) => chunks.push(chunk));
+          res.on("end", () => {
+            const body = Buffer.concat(chunks).toString("utf8");
+            const status = res.statusCode ?? 0;
+            resolve({
+              ok: status >= 200 && status < 300,
+              status,
+              text: () => Promise.resolve(body),
+              json: () => Promise.resolve(JSON.parse(body)),
+            });
+          });
+          res.on("error", reject);
+        }
+      );
+      req.on("error", reject);
+      signal.addEventListener("abort", () => { req.destroy(); reject(new Error("AbortError")); });
+      req.end();
+    }).catch(reject);
+  });
+}
+
 export async function fetchPageSpeed(
   url: string,
   apiKey?: string,
-  // fetchFn is accepted for test injection but PageSpeed always uses native fetch
-  // to bypass Next.js's patched globalThis.fetch which adds its own timeouts
   _fetchFn: typeof fetch = globalThis.fetch
 ): Promise<PageSpeedResult> {
   const fetchedAt = new Date();
@@ -26,13 +53,8 @@ export async function fetchPageSpeed(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 55_000);
 
-  // Use Node's native fetch (undici) directly to avoid Next.js's patched fetch timeouts
-  const nativeFetch: typeof fetch =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (globalThis as any).__undici_fetch ?? (await import("undici").then((m) => m.fetch).catch(() => globalThis.fetch));
-
   try {
-    const res = await nativeFetch(endpoint.href, { signal: controller.signal });
+    const res = await fetchWithNodeHttps(endpoint.href, controller.signal);
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       if (res.status === 429) {
@@ -46,8 +68,8 @@ export async function fetchPageSpeed(
     return { mobile, fetchedAt };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    const isTimeout = msg.toLowerCase().includes("abort") || msg.toLowerCase().includes("timeout");
-    return { mobile: null, fetchedAt, error: isTimeout ? `PageSpeed request timed out after 55s` : msg };
+    const isTimeout = msg.toLowerCase().includes("abort") || msg.toLowerCase().includes("AbortError") || msg.toLowerCase().includes("timeout");
+    return { mobile: null, fetchedAt, error: isTimeout ? "PageSpeed request timed out after 55s" : msg };
   } finally {
     clearTimeout(timer);
   }
