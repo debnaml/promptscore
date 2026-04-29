@@ -74,7 +74,7 @@ export const authorityTrustChecks: Check[] = [
     type: "D",
     weight: 3,
     run(ctx) {
-      const wikidata = (ctx as unknown as { wikidataResult?: { score: number; entity?: string; ambiguous?: boolean } }).wikidataResult;
+      const wikidata = ctx.wikidataResult;
       if (!wikidata) {
         return notScored("Wikidata lookup not yet run — will be fetched in scan pipeline");
       }

@@ -14,6 +14,12 @@ import { extractMeta } from "./meta";
 import type { MetaAnalysis } from "./meta";
 import { extractSemantic } from "./semantic";
 import type { SemanticAnalysis } from "./semantic";
+import { fetchPageSpeed } from "./pagespeed";
+import type { PageSpeedResult } from "./pagespeed";
+import { lookupWikidata } from "./wikidata";
+import type { WikidataResult } from "./wikidata";
+import { runBotProbes } from "./bot-probes";
+import type { BotProbeResult } from "./bot-probes";
 
 export interface PageAnalysis {
   url: string;
@@ -31,8 +37,9 @@ export interface FetchContext {
   llmsTxt: LlmsTxtAnalysis;
   homepage: PageAnalysis;
   innerPages: PageAnalysis[];
-  /** Populated in Sprint 3 */
-  botProbes: Record<string, { userAgent: string; status: number; blocked: boolean }>;
+  botProbes: Record<string, BotProbeResult>;
+  pagespeed: PageSpeedResult | null;
+  wikidataResult: WikidataResult | null;
   warnings: string[];
   errors: string[];
 }
@@ -79,7 +86,9 @@ export async function buildFetchContext(
       llmsTxt: { present: false, valid: false, raw: null, fullRaw: null, errors: [] },
       homepage: buildEmptyPage(raw),
       innerPages: [],
-      botProbes: {},
+      botProbes: {} as Record<string, BotProbeResult>,
+      pagespeed: null,
+      wikidataResult: null,
       warnings,
       errors,
     };
@@ -145,7 +154,33 @@ export async function buildFetchContext(
     semantic: homepageSemantic,
   };
 
-  // 3. Sample inner pages (depends on sitemap + homepage HTML)
+  // 3. Extract brand name for Wikidata (from schema or page title)
+  const brandName: string =
+    homepage.jsonLd.organization?.name ??
+    homepage.meta.og["og:site_name"] ??
+    (() => {
+      try { return new URL(canonical).hostname.replace(/^www\./, ""); } catch { return ""; }
+    })();
+
+  // 4. Run external enrichment calls in parallel (PageSpeed, Wikidata, bot probes)
+  const [pagespeed, wikidataResult, botProbesResult] = await Promise.all([
+    fetchPageSpeed(canonical, undefined, fetchFn).catch((e) => {
+      warnings.push(`PageSpeed fetch failed: ${e instanceof Error ? e.message : String(e)}`);
+      return null;
+    }),
+    brandName
+      ? lookupWikidata(brandName, fetchFn).catch((e) => {
+          warnings.push(`Wikidata lookup failed: ${e instanceof Error ? e.message : String(e)}`);
+          return null;
+        })
+      : Promise.resolve(null),
+    runBotProbes(canonical, fetchFn).catch((e) => {
+      warnings.push(`Bot probes failed: ${e instanceof Error ? e.message : String(e)}`);
+      return {} as Record<string, BotProbeResult>;
+    }),
+  ]);
+
+  // 5. Sample inner pages (depends on sitemap + homepage HTML)
   const homepageHtml = homepageStatic?.ok ? homepageStatic.html : "";
   const { pages: sampledPages, warnings: samplerWarnings } = sampleInnerPages(
     canonical,
@@ -154,7 +189,7 @@ export async function buildFetchContext(
   );
   warnings.push(...samplerWarnings);
 
-  // 4. Fetch inner pages in parallel
+  // 6. Fetch inner pages in parallel
   const innerPageResults = await Promise.all(
     sampledPages.map(async ({ url }) => {
       const staticResult = await fetchStatic(url, fetchFn).catch((e) => {
@@ -184,7 +219,9 @@ export async function buildFetchContext(
     llmsTxt,
     homepage,
     innerPages: innerPageResults,
-    botProbes: {},
+    botProbes: botProbesResult,
+    pagespeed,
+    wikidataResult,
     warnings,
     errors,
   };

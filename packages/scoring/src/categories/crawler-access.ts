@@ -130,7 +130,7 @@ export const crawlerAccessChecks: Check[] = [
     type: "DC",
     weight: 1,
     run(ctx) {
-      const psi = (ctx as unknown as { pagespeed?: { mobile?: number } }).pagespeed;
+      const psi = ctx.pagespeed;
       if (!psi?.mobile) {
         return notScored("PageSpeed result not available — will be fetched separately");
       }

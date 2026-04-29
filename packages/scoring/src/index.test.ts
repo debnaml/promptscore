@@ -55,7 +55,7 @@ describe("buildNarrative", () => {
       category: c.category,
       type: c.type,
       weight: c.weight,
-      result: scored(0),
+      result: scored(0, {}),
     }));
     const agg = aggregate(results);
     const narrative = buildNarrative(agg);
@@ -71,7 +71,7 @@ describe("buildNarrative", () => {
       category: c.category,
       type: c.type,
       weight: c.weight,
-      result: scored(1),
+      result: scored(1, {}),
     }));
     const agg = aggregate(results);
     const narrative = buildNarrative(agg);
