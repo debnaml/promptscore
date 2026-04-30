@@ -93,7 +93,7 @@ export const aiSpecificChecks: Check[] = [
       const aiPaths = ["/ai", "/ai-policy", "/artificial-intelligence"];
       const allHtml = ctx.homepage.static.ok ? (ctx.homepage.static as { html: string }).html : "";
       const found = aiPaths.some((p) => {
-        const re = new RegExp(`href=["'][^"']*${p.replace("/", "\\/")}["']`, "i");
+        const re = new RegExp(`href=["'][^"']*${p.replace("/", "\\/")}(\\.html?)?["']`, "i");
         return re.test(allHtml);
       });
       return scored(found ? 1 : 0, { checked_paths: aiPaths, found });
