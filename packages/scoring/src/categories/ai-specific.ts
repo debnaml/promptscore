@@ -89,14 +89,46 @@ export const aiSpecificChecks: Check[] = [
     type: "D",
     weight: 2,
     run(ctx) {
-      // Check if any inner page or nav link references an AI policy path
-      const aiPaths = ["/ai", "/ai-policy", "/artificial-intelligence"];
-      const allHtml = ctx.homepage.static.ok ? (ctx.homepage.static as { html: string }).html : "";
-      const found = aiPaths.some((p) => {
-        const re = new RegExp(`href=["'][^"']*${p.replace("/", "\\/")}(\\.html?)?["']`, "i");
-        return re.test(allHtml);
-      });
-      return scored(found ? 1 : 0, { checked_paths: aiPaths, found });
+      // Signal 1: dedicated ai.txt file at root
+      if (ctx.aiTxt?.present) {
+        return scored(1, { method: "ai.txt", found: true }, "ai.txt found at site root");
+      }
+
+      const allHtmlSources = [
+        ctx.homepage.static.ok ? (ctx.homepage.static as { html: string }).html : "",
+        ...ctx.innerPages.map((p) => (p.static.ok ? (p.static as { html: string }).html : "")),
+      ];
+
+      // Signal 2: href containing AI policy related path keywords (any extension/query/hash)
+      const hrefKeywords = [
+        "ai-policy", "ai-disclosure", "ai-transparency", "ai-stance",
+        "ai-usage", "ai-commitment", "ai-principles", "ai-approach",
+        "ai-ethics", "ai-guidelines", "artificial-intelligence-policy",
+      ];
+      const hrefKeywordRe = new RegExp(
+        `href=["'][^"']*(${hrefKeywords.join("|")})[^"']*["']`,
+        "i"
+      );
+      // Also catch bare /ai path segment (not just /aim, /air etc.)
+      const hrefAiPathRe = /href=["'][^"']*\/ai(\.html?|\.txt|\/[^"']*|[?#"'])/i;
+
+      // Signal 3: anchor link text mentioning AI policy
+      const linkTextRe = /<a\b[^>]*>[^<]*(ai\s+policy|ai\s+disclosure|ai\s+transparency|ai\s+stance|ai\s+ethics|artificial\s+intelligence\s+policy)[^<]*<\/a>/i;
+
+      for (const html of allHtmlSources) {
+        if (!html) continue;
+        if (hrefKeywordRe.test(html)) {
+          return scored(1, { method: "href_keyword", found: true });
+        }
+        if (hrefAiPathRe.test(html)) {
+          return scored(1, { method: "href_ai_path", found: true });
+        }
+        if (linkTextRe.test(html)) {
+          return scored(1, { method: "link_text", found: true });
+        }
+      }
+
+      return scored(0, { found: false });
     },
   },
 

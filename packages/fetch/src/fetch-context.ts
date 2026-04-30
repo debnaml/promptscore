@@ -38,6 +38,7 @@ export interface FetchContext {
   homepage: PageAnalysis;
   innerPages: PageAnalysis[];
   botProbes: Record<string, BotProbeResult>;
+  aiTxt: { present: boolean; raw: string | null };
   pagespeed: PageSpeedResult | null;
   wikidataResult: WikidataResult | null;
   warnings: string[];
@@ -87,6 +88,7 @@ export async function buildFetchContext(
       homepage: buildEmptyPage(raw),
       innerPages: [],
       botProbes: {} as Record<string, BotProbeResult>,
+      aiTxt: { present: false, raw: null },
       pagespeed: null,
       wikidataResult: null,
       warnings,
@@ -162,8 +164,8 @@ export async function buildFetchContext(
       try { return new URL(canonical).hostname.replace(/^www\./, ""); } catch { return ""; }
     })();
 
-  // 4. Run external enrichment calls in parallel (PageSpeed, Wikidata, bot probes)
-  const [pagespeed, wikidataResult, botProbesResult] = await Promise.all([
+  // 4. Run external enrichment calls in parallel (PageSpeed, Wikidata, bot probes, ai.txt)
+  const [pagespeed, wikidataResult, botProbesResult, aiTxtResult] = await Promise.all([
     fetchPageSpeed(canonical, undefined, fetchFn).catch((e) => {
       warnings.push(`PageSpeed fetch failed: ${e instanceof Error ? e.message : String(e)}`);
       return null;
@@ -178,6 +180,25 @@ export async function buildFetchContext(
       warnings.push(`Bot probes failed: ${e instanceof Error ? e.message : String(e)}`);
       return {} as Record<string, BotProbeResult>;
     }),
+    (async (): Promise<{ present: boolean; raw: string | null }> => {
+      try {
+        const aiTxtUrl = `${origin}/ai.txt`;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 10_000);
+        const res = await fetchFn(aiTxtUrl, {
+          headers: { "User-Agent": "PromptScoreBot/1.0" },
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (res.ok) {
+          const raw = await res.text().catch(() => "");
+          return { present: true, raw };
+        }
+        return { present: false, raw: null };
+      } catch {
+        return { present: false, raw: null };
+      }
+    })(),
   ]);
 
   // 5. Sample inner pages (depends on sitemap + homepage HTML)
@@ -220,6 +241,7 @@ export async function buildFetchContext(
     homepage,
     innerPages: innerPageResults,
     botProbes: botProbesResult,
+    aiTxt: aiTxtResult ?? { present: false, raw: null },
     pagespeed,
     wikidataResult,
     warnings,
