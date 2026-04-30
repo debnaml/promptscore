@@ -197,7 +197,7 @@ describe("buildFetchContext", () => {
     expect(ctx.warnings.some((w) => w.includes("inner pages"))).toBe(true);
   });
 
-  it("botProbes is empty object (populated in sprint 3)", async () => {
+  it("botProbes is populated with results for known AI bots", async () => {
     const fetch = makeFetch({
       "https://example.com/robots.txt": { status: 404, body: "" },
       "https://example.com/sitemap.xml": { status: 404, body: "" },
@@ -205,10 +205,11 @@ describe("buildFetchContext", () => {
       "https://example.com/sitemap-index.xml": { status: 404, body: "" },
       "https://example.com/llms.txt": { status: 404, body: "" },
       "https://example.com/llms-full.txt": { status: 404, body: "" },
+      "https://example.com/ai.txt": { status: 404, body: "" },
       "https://example.com": { status: 200, body: HOMEPAGE_HTML },
     });
 
     const ctx = await buildFetchContext("https://example.com", fetch as unknown as typeof globalThis.fetch);
-    expect(ctx.botProbes).toEqual({});
+    expect(Object.keys(ctx.botProbes).length).toBeGreaterThan(0);
   });
 });

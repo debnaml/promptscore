@@ -46,7 +46,18 @@ function extractOrganization(blocks: JsonLdBlock[]): OrganizationSchema | null {
       if (!item || typeof item !== "object") continue;
       const record = item as Record<string, unknown>;
       const types = extractTypes(item);
-      if (!types.some((t) => t === "Organization" || t === "LocalBusiness")) continue;
+      const ORG_TYPES = new Set([
+        "Organization", "LocalBusiness", "ProfessionalService", "Corporation",
+        "NGO", "GovernmentOrganization", "EducationalOrganization", "MedicalOrganization",
+        "SportsOrganization", "NewsMediaOrganization", "OnlineBusiness",
+        "LegalService", "FinancialService", "AccountingService", "AutoRepair",
+        "Dentist", "DryCleaningOrLaundry", "EmergencyService", "EntertainmentBusiness",
+        "FoodEstablishment", "HomeAndConstructionBusiness", "InternetCafe",
+        "Library", "LodgingBusiness", "MedicalBusiness", "RealEstateAgent",
+        "RecyclingCenter", "SelfStorage", "ShoppingCenter", "SportsActivityLocation",
+        "Store", "TravelAgency",
+      ]);
+      if (!types.some((t) => ORG_TYPES.has(t))) continue;
 
       const logo =
         typeof record.logo === "string"
