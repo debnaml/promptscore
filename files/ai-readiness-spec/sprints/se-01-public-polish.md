@@ -12,7 +12,9 @@
 ## Tasks
 
 ### SE1.1 — Homepage redesign
+
 Rebuild `/` as a real landing page, not just a URL input box:
+
 - Hero: one-line value prop + supporting sentence + URL input + "Run scan" CTA
 - "How it works" — 3 steps with icons (paste URL → scan runs → get scored)
 - Sample report screenshot (use a real high-scoring scan, blurred URL if needed)
@@ -23,14 +25,18 @@ Rebuild `/` as a real landing page, not just a URL input box:
 - Sticky header: PromptScore wordmark + "by Performance Peak" microtag, link to methodology
 
 ### SE1.2 — Scan-in-progress page polish
+
 Currently functional but plain. Add:
+
 - Branded loading animation (subtle, not flashy)
 - Micro-explanations as each phase runs ("Fetching robots.txt…", "Parsing structured data…", "Asking the AI grader…")
 - ETA countdown (rough, based on average scan time)
 - "Don't close this tab" reassurance + auto-resume if they do
 
 ### SE1.3 — Result page polish
+
 This is the most-shared page. Make it shareable:
+
 - Bigger, bolder overall score with score-band label ("Strong" / "Promising" / "Needs work")
 - Five category cards laid out as a clean grid, colour-coded
 - "Top 3 quick wins" panel (priority actions, plain English)
@@ -39,24 +45,28 @@ This is the most-shared page. Make it shareable:
 - Share buttons: copy link, share on LinkedIn (with pre-filled post text)
 
 ### SE1.4 — Email-gate UX polish
+
 - Clearer benefit copy ("Get the full 34-check breakdown as a PDF + we'll email you the report")
 - Inline validation (no full-page reload on error)
 - Loading state on submit
 - Success state shows "PDF on its way to {email}" with re-send option
 
 ### SE1.5 — Header / footer / nav consistency
+
 - Single shared `<SiteHeader />` and `<SiteFooter />` components
 - Header on every public page
 - Footer on every public page (privacy, methodology, Performance Peak)
 - Mobile responsive (hamburger menu only if there's actually nav to fit)
 
 ### SE1.6 — Open Graph image template
+
 - Dynamic OG image at `/api/og` using Next.js `ImageResponse`
 - Default OG image for homepage / methodology / blog
 - Per-scan OG image at `/api/og/scan/[id]` showing the scanned URL + score (so when results are shared on LinkedIn the preview is gorgeous)
 - 1200×630, brand-correct typography + colours
 
 ### SE1.7 — Visual / typography rhythm
+
 - Audit all public pages for consistent spacing scale (use Tailwind spacing tokens)
 - Consistent type scale across pages (one h1 size, one h2, one body, etc.)
 - Verify all colours come from the palette in `02-brand-identity.md`

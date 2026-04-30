@@ -20,19 +20,19 @@ The original sprint files are archived at [`sprints/archive/`](./sprints/archive
 
 ### Active sprint index — Sprint Extras
 
-| # | File | Goal | Tag |
-|---|---|---|---|
-| SE1 | [`sprints/se-01-public-polish.md`](./sprints/se-01-public-polish.md) | Public site polish (homepage, result, OG, header/footer) | `v0.7.1` |
-| SE2 | [`sprints/se-02-self-readiness.md`](./sprints/se-02-self-readiness.md) | Self-SEO + AI search readiness — promptscore scores ≥95 on its own scanner | `v0.7.2` |
-| SE3 | [`sprints/se-03-methodology.md`](./sprints/se-03-methodology.md) | Public `/methodology` page with full rubric and FAQPage schema | `v0.7.3` |
-| SE4 | [`sprints/se-04-error-hardening.md`](./sprints/se-04-error-hardening.md) | Graceful errors + external-call timeouts + stuck-scan cleanup | `v0.7.4` |
-| SE5 | [`sprints/se-05-a11y-analytics.md`](./sprints/se-05-a11y-analytics.md) | WCAG 2.2 AA + privacy-respecting analytics + `/admin/funnel` | `v0.7.5` |
-| SE6 | [`sprints/se-06-launch-content.md`](./sprints/se-06-launch-content.md) | Launch content pack — LinkedIn carousel feature, blog post #1, demo video | `v0.8.0` |
-| SE7 | [`sprints/se-07-sales-enablement.md`](./sprints/se-07-sales-enablement.md) | Sales emails, cold templates, lead-detail "copy email", playbook | `v0.8.1` |
-| SE8 | [`sprints/se-08-badge-archive.md`](./sprints/se-08-badge-archive.md) | Embed badge for ≥85 + public benchmark archive | `v0.8.2` |
-| SE9 | [`sprints/se-09-v2-foundations.md`](./sprints/se-09-v2-foundations.md) | History tracking, public competitor comparison, scheduled re-scans | `v0.9.0` |
-| SE10 | [`sprints/se-10-v1-release.md`](./sprints/se-10-v1-release.md) | Sentry, Turnstile, blocklist, load tests, paid-tier decision, v1.0.0 | `v1.0.0` |
-| SE11 | [`sprints/se-11-playwright-worker.md`](./sprints/se-11-playwright-worker.md) | Playwright render worker on Fly.io — fixes `js_dependency_ratio` + JS-heavy SPA scoring | `v0.7.6` |
+| #    | File                                                                                 | Goal                                                                                                                             | Tag      |
+| ---- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| SE1  | [`sprints/se-01-public-polish.md`](./sprints/se-01-public-polish.md)                 | Public site polish (homepage, result, OG, header/footer)                                                                         | `v0.7.1` |
+| SE2  | [`sprints/se-02-self-readiness.md`](./sprints/se-02-self-readiness.md)               | Self-SEO + AI search readiness — promptscore scores ≥95 on its own scanner                                                       | `v0.7.2` |
+| SE3  | [`sprints/se-03-methodology.md`](./sprints/se-03-methodology.md)                     | Public `/methodology` page with full rubric and FAQPage schema                                                                   | `v0.7.3` |
+| SE4  | [`sprints/se-04-error-hardening.md`](./sprints/se-04-error-hardening.md)             | Graceful errors + external-call timeouts + stuck-scan cleanup                                                                    | `v0.7.4` |
+| SE5  | [`sprints/se-05-a11y-analytics.md`](./sprints/se-05-a11y-analytics.md)               | WCAG 2.2 AA + privacy-respecting analytics + `/admin/funnel`                                                                     | `v0.7.5` |
+| SE6  | [`sprints/se-06-launch-content.md`](./sprints/se-06-launch-content.md)               | Launch content pack — LinkedIn carousel feature, blog post #1, demo video                                                        | `v0.8.0` |
+| SE7  | [`sprints/se-07-sales-enablement.md`](./sprints/se-07-sales-enablement.md)           | Sales emails, cold templates, lead-detail "copy email", playbook                                                                 | `v0.8.1` |
+| SE8  | [`sprints/se-08-badge-archive.md`](./sprints/se-08-badge-archive.md)                 | Embed badge for ≥85 + public benchmark archive                                                                                   | `v0.8.2` |
+| SE9  | [`sprints/se-09-v2-foundations.md`](./sprints/se-09-v2-foundations.md)               | History tracking, public competitor comparison, scheduled re-scans                                                               | `v0.9.0` |
+| SE10 | [`sprints/se-10-v1-release.md`](./sprints/se-10-v1-release.md)                       | Sentry, Turnstile, blocklist, load tests, paid-tier decision, v1.0.0                                                             | `v1.0.0` |
+| SE11 | [`sprints/se-11-playwright-worker.md`](./sprints/se-11-playwright-worker.md)         | Playwright render worker on Fly.io — fixes `js_dependency_ratio` + JS-heavy SPA scoring                                          | `v0.7.6` |
 | SE12 | [`sprints/se-12-admin-ops-completions.md`](./sprints/se-12-admin-ops-completions.md) | Deferred admin/ops items: audit log UI, retry UI, queue position, GDPR deletion, log drain, uptime monitor, benchmark scheduling | `v0.7.7` |
 
 ## How to drive Claude Code with this spec
@@ -49,18 +49,18 @@ Each task is sized for one focused Claude Code session. Every sprint ends with a
 
 S1–S7 are complete and tagged. Their plans live at [`sprints/archive/`](./sprints/archive/).
 
-| # | Status |
-|---|---|
-| 1 | ✅ Foundation |
-| 2 | ✅ Fetch & parse |
-| 3 | ✅ Deterministic scoring |
-| 4 | ✅ AI checks + MVP live |
-| 5 | ✅ Email gate + PDF |
-| 6 | ✅ Admin dashboard |
-| 7 | ✅ Benchmark mode (S7.6 LinkedIn → SE6, S7.8 archive → SE8) |
-| 8 | ⚠️ Resliced into SE4 / SE5 / SE10 |
-| 9 | ⚠️ Resliced into SE3 / SE6 / SE7 / SE8 |
-| 10 | ⚠️ Resliced into SE9 / SE10 |
+| #   | Status                                                      |
+| --- | ----------------------------------------------------------- |
+| 1   | ✅ Foundation                                               |
+| 2   | ✅ Fetch & parse                                            |
+| 3   | ✅ Deterministic scoring                                    |
+| 4   | ✅ AI checks + MVP live                                     |
+| 5   | ✅ Email gate + PDF                                         |
+| 6   | ✅ Admin dashboard                                          |
+| 7   | ✅ Benchmark mode (S7.6 LinkedIn → SE6, S7.8 archive → SE8) |
+| 8   | ⚠️ Resliced into SE4 / SE5 / SE10                           |
+| 9   | ⚠️ Resliced into SE3 / SE6 / SE7 / SE8                      |
+| 10  | ⚠️ Resliced into SE9 / SE10                                 |
 
 ## Repeatability — the one thing that matters most
 

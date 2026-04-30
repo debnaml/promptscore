@@ -12,7 +12,9 @@
 ## Tasks
 
 ### SE5.1 — Accessibility audit
+
 Run axe-core (CLI or browser extension) against:
+
 - `/` (homepage)
 - `/scan/[id]` (in-progress)
 - `/scan/[id]` (completed)
@@ -22,7 +24,9 @@ Run axe-core (CLI or browser extension) against:
 - `/privacy`
 
 ### SE5.2 — Fix all WCAG 2.2 AA violations
+
 Common likely fixes:
+
 - `<button>` vs `<a>` semantics on CTAs
 - Form labels properly associated with inputs
 - Sufficient colour contrast on muted text
@@ -33,19 +37,24 @@ Common likely fixes:
 - Skip-to-content link
 
 ### SE5.3 — Keyboard testing
+
 Manually tab through every public page. Confirm:
+
 - Focus order is logical
 - Every interactive element is reachable
 - Visible focus state at every step
 - No focus traps
 
 ### SE5.4 — Privacy-respecting analytics
+
 Choose: Plausible (paid, hosted) or Umami (self-hosted on the existing infra). Recommendation: **Plausible** — cheaper than the time it takes to host Umami well.
 
 Configure cookie-less tracking. Add `<script>` to public layout only (not admin).
 
 ### SE5.5 — Custom events
+
 Track the funnel:
+
 - `scan_started` — properties: `category`, `url_hash` (not URL)
 - `scan_completed` — properties: `score_band` (Strong / Promising / Needs work), `duration_seconds`
 - `scan_failed` — properties: `failure_reason` (from SE4)
@@ -57,7 +66,9 @@ Track the funnel:
 - `methodology_viewed`
 
 ### SE5.6 — Admin funnel view
+
 New admin page `/admin/funnel`:
+
 - Top-line: total scans this week / month
 - Funnel chart: scan_started → scan_completed → email_gate_submitted → report_viewed → calendar_clicked
 - Conversion % at each step
@@ -67,7 +78,9 @@ New admin page `/admin/funnel`:
 Pulled directly from Plausible's API (or Umami) using server-rendered pages — no third-party dashboards in the admin UI.
 
 ### SE5.7 — Privacy policy update
+
 Update `/privacy` to mention:
+
 - Plausible cookie-less analytics
 - What's tracked, what isn't
 - That URL hashes (not URLs) are tracked

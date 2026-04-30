@@ -12,12 +12,15 @@
 ## Tasks
 
 ### SE2.1 — robots.txt + sitemap.xml + llms.txt
+
 - `/robots.txt` — explicitly allow major retrieval bots (GPTBot, ClaudeBot, PerplexityBot, OAI-SearchBot, ChatGPT-User, Googlebot, Bingbot). Block none. Reference sitemap.
 - `/sitemap.xml` — generated from a static list of public routes (homepage, methodology, privacy, blog index, individual blog posts). Updated automatically when blog posts are added (post-SE6).
 - `/llms.txt` — plain-text guide to AI agents about what the site is, how to use it, and where the canonical content lives. Treat the file itself as a marketing asset.
 
 ### SE2.2 — Per-page metadata via Next.js `metadata` API
+
 Every public route exports a `Metadata` object with:
+
 - `title` (page-specific, ends with " — PromptScore")
 - `description` (page-specific, 140–160 chars)
 - `canonical` URL
@@ -27,18 +30,22 @@ Every public route exports a `Metadata` object with:
 Routes covered: `/`, `/methodology`, `/privacy`, `/scan/[id]`, `/scan/[id]/report`, `/scan/[id]/unlock`, `/unsubscribe`.
 
 ### SE2.3 — Structured data (JSON-LD)
+
 - Homepage: `Organization` + `WebApplication` + `WebSite` (with `SearchAction` pointing to the scan form)
 - Methodology page: `FAQPage` (post-SE3)
 - Blog posts (post-SE6): `Article` + `BreadcrumbList`
 - Per-scan public result: `Report` schema (custom but valid) + `BreadcrumbList`
 
 ### SE2.4 — Verify SSR + content rendering
+
 - All public pages confirmed to render meaningful content **without** JavaScript (curl + view-source check)
 - No content gated behind hydration
 - Word count above the fold ≥150 on homepage, ≥600 on methodology
 
 ### SE2.5 — Crawler-friendly result pages
+
 The public scan result page (`/scan/[id]`) should be:
+
 - Server-rendered with all content visible
 - Indexable (no `noindex`)
 - Canonical URL set to the result page itself
@@ -47,6 +54,7 @@ The public scan result page (`/scan/[id]`) should be:
 This makes individual results AI-citable and SEO-indexable — every scan becomes a piece of content.
 
 ### SE2.6 — Self-scan + remediate
+
 1. Run the scanner against `https://promptscore.vercel.app` (or final domain).
 2. Review all 34 check results.
 3. Fix any check scoring < 1 (full marks). For each, document why and the fix.
@@ -54,6 +62,7 @@ This makes individual results AI-citable and SEO-indexable — every scan become
 5. Take screenshot — saved to `docs/self-scan-screenshot.png` for use in marketing materials.
 
 ### SE2.7 — Domain decision + canonical
+
 Decide between `promptscore.vercel.app` (current), `promptscore.co.uk` (planned in spec), or another. Set canonical URLs accordingly. If switching, configure 301 redirect from old domain.
 
 ---

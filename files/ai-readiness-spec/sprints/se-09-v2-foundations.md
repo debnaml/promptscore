@@ -12,7 +12,9 @@
 ## Tasks
 
 ### SE9.1 — `scan_history` table
+
 Migration adding:
+
 ```sql
 create table scan_history (
   id          uuid primary key default gen_random_uuid(),
@@ -24,10 +26,13 @@ create table scan_history (
 );
 create index idx_scan_history_url_hash_scored_at on scan_history (url_hash, scored_at desc);
 ```
+
 Worker writes a row on every successful scan completion. Backfill from existing completed scans.
 
 ### SE9.2 — Admin trend view
+
 Route `/admin/scans/[id]/history`:
+
 - Line chart: overall score over time (one point per scan of the same `url_hash`)
 - 5 small line charts: each category over time
 - Changelog table: for each consecutive pair, diff the per-check scores; show only checks that changed by ≥10 points
@@ -35,7 +40,9 @@ Route `/admin/scans/[id]/history`:
 Useful copy: "Your score improved 12 points in 3 months — here's what moved."
 
 ### SE9.3 — Public competitor comparison
+
 On the result page, after the email gate is unlocked, show a "Compare against competitors" section:
+
 - Input: 1–3 competitor URLs
 - Submit triggers competitor scans (using the cache where possible)
 - Result: comparison bar chart (overall + 5 categories) with rows for the original site + competitors
@@ -44,6 +51,7 @@ On the result page, after the email gate is unlocked, show a "Compare against co
 Gate: only available after the email gate is completed for the original URL.
 
 ### SE9.4 — Scheduled re-scan jobs
+
 - Migration: `scheduled_scans` table — `{ id, url, label, cadence ('weekly'|'monthly'|'quarterly'), next_run_at, created_by, active boolean }`
 - Cron route `/api/cron/scheduled-scans`: queries for `next_run_at <= now() and active`, queues each via QStash, updates `next_run_at`
 - Vercel scheduled function configured to hit it every 30 minutes
@@ -52,7 +60,9 @@ Gate: only available after the email gate is completed for the original URL.
 When a scheduled scan completes and the score has changed by ≥5 points, send Lee a notification email.
 
 ### SE9.5 — Public per-URL history page
+
 Route `/history/[url_hash]` (no auth):
+
 - Header: hostname + most recent score
 - Score-over-time chart
 - Optional: relative position vs scanned peers in the same category
@@ -63,6 +73,7 @@ Privacy: only show URL-level data. No lead names, no email-related metadata.
 Only linked from: the embed badge (SE8) and per-scan result pages once history exists. Not in the sitemap.
 
 ### SE9.6 — "Re-check" button on scan results
+
 - "Re-scan" button on `/scan/[id]` and `/admin/scans/[id]`
 - Bypasses the 30-day cache, runs a fresh scan, links the new scan to the same `url_hash`
 - New entry appears in history immediately

@@ -128,23 +128,36 @@ export const authorityTrustChecks: Check[] = [
     type: "D",
     weight: 2,
     run(ctx) {
+      const html = ctx.homepage.static.ok ? (ctx.homepage.static as { html: string }).html : "";
       const orgName = ctx.homepage.jsonLd.organization?.name ?? null;
-      const titleText = extractTitleText(ctx.homepage.static.ok ? (ctx.homepage.static as { html: string }).html : "");
-      const logoAlt = extractLogoAlt(ctx.homepage.static.ok ? (ctx.homepage.static as { html: string }).html : "");
+      const ogSiteName = (ctx.homepage.meta.og["og:site_name"] as string | undefined) ?? null;
+      const titleText = extractTitleText(html);
+      const logoAlt = extractLogoAlt(html);
 
-      const candidates = [orgName, titleText, logoAlt].filter((s): s is string => !!s);
+      // Prefer short, unambiguous signals (org name, og:site_name) as the comparison base
+      const signals = { org_name: orgName, og_site_name: ogSiteName, title: titleText, logo_alt: logoAlt };
+      const candidates = [orgName, ogSiteName, extractBrandFromTitle(titleText), logoAlt]
+        .filter((s): s is string => !!s);
+
       if (candidates.length < 2) {
-        return scored(0.5, { org_name: orgName, title: titleText, logo_alt: logoAlt, note: "Insufficient data for comparison" });
+        return scored(0.5, { ...signals, note: `Insufficient signals — only found: ${candidates.join(", ") || "none"}` });
       }
 
-      const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
+      const decodeEntities = (s: string) => s.replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"');
+      const normalise = (s: string) => decodeEntities(s).toLowerCase().replace(/[^a-z0-9]/g, "").trim();
       const base = normalise(candidates[0]);
+      const mismatches: string[] = [];
       const consistent = candidates.every((c) => {
         const n = normalise(c);
-        return n.includes(base) || base.includes(n) || levenshtein(n, base) <= 3;
+        const ok = n.includes(base) || base.includes(n) || levenshtein(n, base) <= 3;
+        if (!ok) mismatches.push(c);
+        return ok;
       });
 
-      return scored(consistent ? 1 : 0.5, { org_name: orgName, title: titleText, logo_alt: logoAlt });
+      const notes = consistent
+        ? `Brand consistent across ${candidates.length} signals`
+        : `Mismatch: ${mismatches.join(" vs ")}`;
+      return scored(consistent ? 1 : 0.5, { ...signals, candidates, mismatches }, notes);
     },
   },
 ];
@@ -152,6 +165,15 @@ export const authorityTrustChecks: Check[] = [
 function extractTitleText(html: string): string | null {
   const m = /<title[^>]*>([^<]*)<\/title>/i.exec(html);
   return m ? m[1].trim() : null;
+}
+
+/** Extract the brand suffix from titles like "Page Name | Brand" or "Brand - Page Name" */
+function extractBrandFromTitle(title: string | null): string | null {
+  if (!title) return null;
+  // "Something | Brand Name" or "Something – Brand Name" or "Something - Brand Name"
+  const m = /[|\u2013\u2014-]\s*([^|\u2013\u2014-]+)$/.exec(title);
+  if (m) return m[1].trim();
+  return title;
 }
 
 function extractLogoAlt(html: string): string | null {
