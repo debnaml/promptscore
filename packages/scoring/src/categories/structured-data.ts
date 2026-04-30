@@ -78,7 +78,7 @@ export const structuredDataChecks: Check[] = [
       const expected = CATEGORY_SCHEMA_EXPECTATIONS[detectedCategory];
       if (expected.length === 0) {
         // Genuinely unknown category — give partial credit, not a fail
-        return scored(0.5, { detected_category: detectedCategory, all_types: [...allTypes], note: "Category could not be determined from schema types present" });
+        return scored(0.5, { detected_category: detectedCategory, all_types: Array.from(allTypes), note: "Category could not be determined from schema types present" });
       }
 
       const pagesWithExpected = allPages.filter((page) =>
@@ -86,7 +86,7 @@ export const structuredDataChecks: Check[] = [
       );
       const ratio = pagesWithExpected.length / allPages.length;
       const score = ratio >= 0.8 ? 1 : ratio >= 0.4 ? 0.5 : 0;
-      return scored(score, { detected_category: detectedCategory, expected, all_types: [...allTypes], ratio, pages_with_expected: pagesWithExpected.length, total_pages: allPages.length });
+      return scored(score, { detected_category: detectedCategory, expected, all_types: Array.from(allTypes), ratio, pages_with_expected: pagesWithExpected.length, total_pages: allPages.length });
     },
   },
 
