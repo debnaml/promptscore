@@ -18,7 +18,7 @@ const CATEGORY_SCHEMA_EXPECTATIONS: Record<DetectedCategory, string[]> = {
   ecommerce: ["Product", "Offer", "AggregateRating"],
   saas: ["SoftwareApplication", "Product"],
   editorial: ["Article", "NewsArticle", "BlogPosting"],
-  "local-services": ["LocalBusiness", "Service"],
+  "local-services": ["LocalBusiness", "ProfessionalService", "Service", "FinancialService", "AccountingService", "LegalService", "HomeAndConstructionBusiness", "HealthAndBeautyBusiness", "FoodEstablishment"],
   other: [],
 };
 
@@ -44,20 +44,49 @@ export const structuredDataChecks: Check[] = [
     type: "DC",
     weight: 6,
     run(ctx) {
-      // Category detection is Sprint 4 (AI). Default to "other" for now.
-      const detectedCategory: DetectedCategory = "other";
+      // Detect category from schema types present across all pages
+      const allPages = [ctx.homepage, ...ctx.innerPages];
+      const allTypes = new Set(allPages.flatMap((p) => p.jsonLd.allTypes));
+
+      function hasAny(...types: string[]) {
+        return types.some((t) => allTypes.has(t));
+      }
+
+      let detectedCategory: DetectedCategory;
+      if (hasAny("Hotel", "Resort", "LodgingBusiness")) {
+        // Distinguish luxury vs budget by presence of Offer/AggregateRating on site
+        detectedCategory = hasAny("AggregateRating") ? "hospitality-luxury" : "hospitality-budget";
+      } else if (hasAny("LegalService", "Attorney", "Notary")) {
+        detectedCategory = "legal";
+      } else if (hasAny("Product", "Offer", "ItemList", "Store", "ShoppingCenter")) {
+        detectedCategory = "ecommerce";
+      } else if (hasAny("SoftwareApplication", "WebApplication", "MobileApplication")) {
+        detectedCategory = "saas";
+      } else if (hasAny("Article", "NewsArticle", "BlogPosting", "NewsMediaOrganization")) {
+        detectedCategory = "editorial";
+      } else if (hasAny(
+        "LocalBusiness", "ProfessionalService", "HomeAndConstructionBusiness",
+        "HealthAndBeautyBusiness", "FoodEstablishment", "AutomotiveBusiness",
+        "EntertainmentBusiness", "FinancialService", "AccountingService",
+        "RealEstateAgent", "TravelAgency", "LodgingBusiness",
+      )) {
+        detectedCategory = "local-services";
+      } else {
+        detectedCategory = "other";
+      }
+
       const expected = CATEGORY_SCHEMA_EXPECTATIONS[detectedCategory];
       if (expected.length === 0) {
-        // "other" — score 0.5 as we can't evaluate without a detected category
-        return scored(0.5, { detected_category: detectedCategory, expected, note: "Category not yet detected — Sprint 4" });
+        // Genuinely unknown category — give partial credit, not a fail
+        return scored(0.5, { detected_category: detectedCategory, all_types: [...allTypes], note: "Category could not be determined from schema types present" });
       }
-      const allPages = [ctx.homepage, ...ctx.innerPages];
+
       const pagesWithExpected = allPages.filter((page) =>
         expected.some((type) => page.jsonLd.hasType(type))
       );
       const ratio = pagesWithExpected.length / allPages.length;
       const score = ratio >= 0.8 ? 1 : ratio >= 0.4 ? 0.5 : 0;
-      return scored(score, { detected_category: detectedCategory, expected, ratio, pages_with_expected: pagesWithExpected.length, total_pages: allPages.length });
+      return scored(score, { detected_category: detectedCategory, expected, all_types: [...allTypes], ratio, pages_with_expected: pagesWithExpected.length, total_pages: allPages.length });
     },
   },
 
